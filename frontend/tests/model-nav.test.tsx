@@ -63,7 +63,7 @@ describe("SPEC-P3-03-NAV - las 5 rutas de Modelo existen y se alcanzan desde el 
     expect(await screen.findByText("Sin corridas todavía.")).toBeInTheDocument();
   });
 
-  it("navega a Experiments, Evaluation, Models e Inference desde el nav, todas dicen 'Pendiente'", async () => {
+  it("navega a Experiments, Evaluation, Models e Inference desde el nav", async () => {
     mockMlApi();
     renderAt("/model/training");
     await screen.findByRole("heading", { name: "Training" });
@@ -72,17 +72,20 @@ describe("SPEC-P3-03-NAV - las 5 rutas de Modelo existen y se alcanzan desde el 
     expect(await screen.findByRole("heading", { name: /Experimentos de MLflow en vivo/i })).toBeInTheDocument();
     expect(await screen.findByText(/Experimentos de MLflow en vivo/i)).toBeInTheDocument();
 
+    // P3-15: Evaluation ya no dice "Pendiente"; sin evaluación final muestra
+    // el motivo real de ml-api.
     fireEvent.click(screen.getByRole("link", { name: "Evaluation" }));
     expect(await screen.findByRole("heading", { name: "Evaluation" })).toBeInTheDocument();
-    expect(await screen.findByText(/Pendiente/)).toBeInTheDocument();
+    expect(await screen.findByText(/todavía no/)).toBeInTheDocument();
 
+    // P3-15: Models distingue "sin versiones publicadas" del pendiente genérico.
     fireEvent.click(screen.getByRole("link", { name: "Models" }));
     expect(await screen.findByRole("heading", { name: "Models" })).toBeInTheDocument();
-    expect(await screen.findByText(/Pendiente/)).toBeInTheDocument();
+    expect(await screen.findByText("Sin versiones publicadas")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("link", { name: "Inference" }));
     expect(await screen.findByRole("heading", { name: "Inference" })).toBeInTheDocument();
-    expect(await screen.findByText(/Pendiente/)).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Imagen nueva" })).toBeInTheDocument();
   });
 
   it("las páginas pendientes y Experiments renderizan correctamente aunque ml-api no responda", async () => {

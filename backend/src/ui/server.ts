@@ -4,6 +4,7 @@ import { env } from '../config/env.js';
 import {
   checkHealth,
   createAnnotationForImage,
+  createInferenceSubmission,
   createSettingsService,
   deleteAnnotation,
   deleteImage,
@@ -280,6 +281,27 @@ app.post('/images/:imageId/annotations', async (req, res) => {
     res.status(201).json(created);
   } catch (error) {
     sendError(res, error, 'No se pudo crear la anotación.');
+  }
+});
+
+/**
+ * "Enviar a cola de anotación" (P3-16, #24): la imagen ya se creó con
+ * `POST /images` (image-upload.service.ts, estado `pending` por default) --
+ * esto solo adjunta la sugerencia del modelo (de `POST /predict`, ml-api) a
+ * esa imagen ya existente.
+ */
+app.post('/images/:imageId/inference-submission', async (req, res) => {
+  const imageId = parseIdParam(req.params.imageId);
+  if (imageId === null) {
+    res.status(400).json({ error: 'ID de imagen inválido.' });
+    return;
+  }
+
+  try {
+    const created = await createInferenceSubmission(imageId, req.body);
+    res.status(201).json(created);
+  } catch (error) {
+    sendError(res, error, 'No se pudo guardar la sugerencia de inferencia.');
   }
 });
 

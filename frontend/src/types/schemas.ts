@@ -37,6 +37,12 @@ export const imageUploadResponseSchema = z.object({
 });
 export type ImageUploadResponse = z.infer<typeof imageUploadResponseSchema>;
 
+// Respuesta de POST /images/:imageId/inference-submission (P3-16, #24).
+export const inferenceSubmissionResponseSchema = z.object({
+  id: z.number(),
+});
+export type InferenceSubmissionResponse = z.infer<typeof inferenceSubmissionResponseSchema>;
+
 export const paginationSchema = z.object({
   page: z.number(),
   pageSize: z.number(),

@@ -13,7 +13,11 @@ CATEGORY_IDS = {"dog": 3, "cat": 4}
 
 
 def mcp_settings(
-    monkeypatch, dataset_dir: Path, reports_dir: Path, derived_dir: Path | None = None
+    monkeypatch,
+    dataset_dir: Path,
+    reports_dir: Path,
+    derived_dir: Path | None = None,
+    models_dir: Path | None = None,
 ) -> Settings:
     monkeypatch.setenv("DATABASE_URL", "mysql+pymysql://u:p@localhost/db")
     monkeypatch.setenv("MINIO_ENDPOINT", "localhost")
@@ -26,6 +30,9 @@ def mcp_settings(
     # P3-09: ml-api la necesita para reverificar el manifiesto; el resto de
     # servicios que usan este fixture (Copilot, MCP) nunca la leen.
     monkeypatch.setenv("DERIVED_DIR", str(derived_dir or dataset_dir.parent / "derived"))
+    # P3-15: sin esto, `Settings()` apuntaría al `models/registry.json` real del
+    # repo y las pruebas de Models tocarían datos de producción.
+    monkeypatch.setenv("MODELS_DIR", str(models_dir or reports_dir.parent / "models"))
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     return Settings(_env_file=None)
 

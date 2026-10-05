@@ -9,13 +9,17 @@ verdad, contra los archivos que escribe `write_manifest` -- es la pieza que
 este ticket (P3-09) tiene que probar, no un detalle de infraestructura.
 """
 
+import csv
+import json
 from datetime import datetime
+from pathlib import Path
 
 from starlette.testclient import TestClient
 
 from ml_api.contracts import TrainingJob
 from ml_api.repository import TrainingJobNotCancellable
 from ml_api.server import create_app
+from selection.lock import test_ids_sha256 as _test_ids_sha256
 from tests._mcp_fixtures import mcp_settings
 from tests._training_job_fixtures import VALID_TRAINING_CONFIG, write_manifest
 
@@ -373,3 +377,149 @@ def test_cancel_job_is_409_when_it_already_finished(monkeypatch, tmp_path):
 
     assert response.status_code == 409
     assert "completed" in response.json()["error"]
+
+
+# --- P3-15: /evaluation y /crops ---------------------------------------------
+
+
+def write_closed_selection(
+    *, reports_dir: Path, derived_dir: Path, release: str = "v0.1.1"
+) -> None:
+    """Cierra el candado de P3-11: manifiesto con split `test` + selection.json
+    cuyo `test_ids_sha256` coincide de verdad (lo calcula el mismo código que
+    usa `lock_reason`)."""
+    manifest_dir = derived_dir / "manifests" / release
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {"crop_id": "000001_000001", "split": "train", "label": 0, "source_image_id": 1},
+        {"crop_id": "000002_000001", "split": "val", "label": 1, "source_image_id": 2},
+        {"crop_id": "000003_000001", "split": "test", "label": 0, "source_image_id": 3},
+        {"crop_id": "000004_000001", "split": "test", "label": 1, "source_image_id": 4},
+    ]
+    with (manifest_dir / "manifest.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+    selection = {
+        "run_id": "7e7b4a4b35464cfebb6b41714a3ad931",
+        "release": release,
+        "manifest_id": f"{release}-53fc84fdaa07",
+        "manifest_sha256": "5" * 64,
+        "checkpoint_sha256": "f" * 64,
+        "test_ids_sha256": _test_ids_sha256(manifest_dir / "manifest.csv"),
+        "selected_at": "2026-10-02T05:43:20.705345Z",
+        "selection_metric": "best_val_accuracy",
+        "candidate": {
+            "grid_row": "r02",
+            "best_val_accuracy": 0.9618320610687023,
+            "best_val_macro_f1": 0.9618231625575566,
+            "best_val_loss": 0.12332657724618912,
+        },
+    }
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    (reports_dir / "selection.json").write_text(json.dumps(selection), encoding="utf-8")
+
+
+def write_evaluation_reports(evaluation_dir: Path) -> None:
+    """Los tres archivos que deja `app/final.py` (P3-13), en miniatura."""
+    evaluation_dir.mkdir(parents=True, exist_ok=True)
+    metrics = {
+        "classes": ["cat", "dog"],
+        "accuracy": 0.75,
+        "macro_f1": 0.7333333333333334,
+        "confusion_matrix": [[2, 0], [1, 1]],
+        "per_class": {
+            "cat": {"precision": 0.6666666666666666, "recall": 1.0, "f1": 0.8, "support": 2},
+            "dog": {"precision": 1.0, "recall": 0.5, "f1": 0.6666666666666666, "support": 2},
+        },
+        "total": 4,
+    }
+    analysis = {
+        "baseline_majority_accuracy": 0.5,
+        "most_confused_class": "dog",
+        "recall_per_class": {"cat": 1.0, "dog": 0.5},
+        "accuracy_hides_low_recall": False,
+        "successes": [
+            {
+                "crop_id": "000003_000001",
+                "source_image_id": "3",
+                "true_class": "cat",
+                "predicted_class": "cat",
+                "probability": 0.95,
+            }
+        ],
+        "errors": [
+            {
+                "crop_id": "000004_000001",
+                "source_image_id": "4",
+                "true_class": "dog",
+                "predicted_class": "cat",
+                "probability": 0.55,
+            }
+        ],
+    }
+    (evaluation_dir / "metrics.json").write_text(json.dumps(metrics), encoding="utf-8")
+    (evaluation_dir / "analysis.json").write_text(json.dumps(analysis), encoding="utf-8")
+
+
+def test_evaluation_is_pending_when_selection_is_closed_but_p3_13_has_not_run(
+    monkeypatch, tmp_path
+):
+    write_closed_selection(reports_dir=tmp_path / "reports", derived_dir=tmp_path / "derived")
+    client = client_for(monkeypatch, tmp_path)
+
+    response = client.get("/evaluation")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "pending"
+    assert body["ticket"] == "P3-13"
+
+
+def test_evaluation_returns_the_real_metrics_once_p3_13_exists(monkeypatch, tmp_path):
+    write_closed_selection(reports_dir=tmp_path / "reports", derived_dir=tmp_path / "derived")
+    write_evaluation_reports(tmp_path / "reports" / "evaluation")
+    client = client_for(monkeypatch, tmp_path)
+
+    response = client.get("/evaluation")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["grid_row"] == "r02"
+    assert body["run_id"] == "7e7b4a4b35464cfebb6b41714a3ad931"
+    assert body["accuracy"] == 0.75
+    assert body["per_class"]["dog"]["recall"] == 0.5
+    assert body["baseline_majority_accuracy"] == 0.5
+    assert body["most_confused_class"] == "dog"
+    assert [example["crop_id"] for example in body["errors"]] == ["000004_000001"]
+
+
+def test_crops_reject_a_malformed_crop_id(monkeypatch, tmp_path):
+    client = client_for(monkeypatch, tmp_path)
+
+    response = client.get("/crops/no-es-un-crop")
+
+    assert response.status_code == 400
+
+
+def test_crops_are_404_when_the_file_does_not_exist(monkeypatch, tmp_path):
+    client = client_for(monkeypatch, tmp_path)
+
+    response = client.get("/crops/000003_000001")
+
+    assert response.status_code == 404
+
+
+def test_crops_serve_the_real_jpeg(monkeypatch, tmp_path):
+    images_dir = tmp_path / "derived" / "crops" / "images"
+    images_dir.mkdir(parents=True)
+    (images_dir / "000003_000001.jpg").write_bytes(b"\xff\xd8\xff\xe0fake-jpeg")
+    client = client_for(monkeypatch, tmp_path)
+
+    response = client.get("/crops/000003_000001")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.content.startswith(b"\xff\xd8\xff")

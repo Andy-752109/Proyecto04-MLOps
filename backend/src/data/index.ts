@@ -38,6 +38,7 @@ export {
   findRecentImages,
   updateImageStatus,
 } from './repositories/image.repository.js';
+export { createInferenceSubmissionRow } from './repositories/inference-submission.repository.js';
 // Funciones de almacenamiento en MinIO.
 export {
   deleteImageObject,

@@ -5,6 +5,7 @@ import {
   imageDetailResponseSchema,
   imageSearchResponseSchema,
   imageUploadResponseSchema,
+  inferenceSubmissionResponseSchema,
   type PatchImageStatusBody,
   patchImageStatusBodySchema,
 } from "../../types/schemas";
@@ -155,6 +156,25 @@ export function patchImageStatus(
 
 export function deleteImage(imageId: number): Promise<void> {
   return apiRequestVoid(`/images/${imageId}`, { method: "DELETE" });
+}
+
+/**
+ * "Enviar a cola de anotación" (P3-16, #24): adjunta la sugerencia de
+ * `POST /predict` (ml-api) a una imagen que `uploadImage` ya creó.
+ */
+export function createInferenceSubmission(
+  imageId: number,
+  suggestion: {
+    predictedLabel: string;
+    probabilities: Record<string, number>;
+    modelVersion: string;
+    checkpointSha256: string;
+  }
+) {
+  return apiRequest(`/images/${imageId}/inference-submission`, inferenceSubmissionResponseSchema, {
+    method: "POST",
+    ...jsonBody(suggestion),
+  });
 }
 
 /** Validación de cliente: no reemplaza la del backend, es feedback inmediato. */

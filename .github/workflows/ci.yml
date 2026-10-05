@@ -20,10 +20,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  python:
-    name: Python (Ruff y pytest)
+  app-ml:
+    name: app-ml (Ruff, pytest, e2e y mutaciones)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: app
@@ -31,6 +31,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # P3-17 (#27): run_p3_mutations.py necesita el historial real para
+          # crear un `git worktree` -- un checkout superficial no alcanza.
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           # Misma versión que app/Dockerfile.
@@ -48,10 +51,40 @@ jobs:
         run: uv run --locked --no-build --group ml ruff check .
       - name: Ruff (formato)
         run: uv run --locked --no-build --group ml ruff format --check .
-      - name: Tests
-        run: uv run --locked --no-build --group ml pytest -q
+      - name: MinIO (para el tramo de publicación de test_e2e_pipeline.py)
+        # `docker run` normal, no un `services:` -- el `minio/minio` oficial
+        # no trae un CMD por defecto, necesita `server /data` como argumento,
+        # y los contenedores de servicio de Actions no dejan pasar un
+        # command propio con facilidad.
+        working-directory: .
+        run: |
+          docker run -d --name minio-ci -p 9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
+            cgr.dev/chainguard/minio:latest server /data
+          for _ in $(seq 1 30); do
+            curl -fs http://localhost:9000/minio/health/live > /dev/null && exit 0
+            sleep 1
+          done
+          echo "::error::MinIO no respondió a tiempo" && exit 1
+      - name: Tests (sin el e2e, que corre aparte -- entrena de verdad, ~3 min)
+        run: uv run --locked --no-build --group ml pytest -q --ignore=tests/test_e2e_pipeline.py
+      - name: e2e (manifiesto -> entrenamiento -> selección -> evaluación -> MinIO -> predicción)
+        run: uv run --locked --no-build --group ml pytest -q tests/test_e2e_pipeline.py
       - name: Mutation test (quality gate)
         run: uv run --locked --no-build --group ml python ../.github/scripts/run_gate_mutation.py
+      - name: Mutaciones P3 (#27) -- cada una en un git worktree, nunca en este checkout
+        working-directory: .
+        run: python3 .github/scripts/run_p3_mutations.py
+      - name: Evidencia de mutaciones P3
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: p3-mutations-evidence
+          path: app/tests/evidence/p3-mutations.md
+          if-no-files-found: ignore
+      - name: Detener MinIO
+        if: always()
+        run: docker rm -f minio-ci || true
 
   backend:
     name: Backend (Biome, tsc, tests y build)
@@ -216,7 +249,7 @@ jobs:
     # `always()`: si un job falla, este también debe correr y fallar. Sin esto, un job
     # fallido dejaría a `CI OK` en "skipped", y GitHub lo trata como aprobado.
     if: always()
-    needs: [python, backend, frontend, compose, quality-gate, quality-gate-prod]
+    needs: [app-ml, backend, frontend, compose, quality-gate, quality-gate-prod]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

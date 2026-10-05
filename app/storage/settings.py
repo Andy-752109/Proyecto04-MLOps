@@ -82,6 +82,17 @@ class Settings(BaseSettings):
     # basta confiar en que `manifest_meta.json` ya lo garantizó al construirse).
     derived_dir: Path
 
+    # P3-15/P3-16: ml-api lee `models/registry.json` (lo publica `publish.py`,
+    # P3-14) para saber qué versión está activa y de dónde bajarla de S3; P3-15
+    # además escribe ahí `active_version.json`. Montado aparte, no horneado en
+    # la imagen (docker-compose.yml): publicar no debe esperar a reconstruir.
+    models_dir: Path = APP_ROOT.parent / "models"
+
+    # P3-15: el bucket de modelos vive en AWS S3 y se accede con el perfil SSO
+    # del equipo (rol MLOpsP3). Vacío = cadena de credenciales por defecto.
+    aws_profile: str | None = None
+    aws_region: str = "us-east-1"
+
     # Copilot (P2-52). Opcional: el gate y el resto del pipeline no la necesitan,
     # así que su ausencia solo deshabilita el chat, no impide arrancar.
     anthropic_api_key: SecretStr | None = None

@@ -22,6 +22,10 @@ data/derived/
 # Marcador interno de la compuerta DVC; se recrea en cada repro aprobado.
 reports/.quality_gate.passed
 
+# P3-15: estado de runtime de Models -- la versión activa para inferencia la
+# elige el portal y no es un dato versionado (`models/registry.json` sí lo es).
+models/active_version.json*
+
 # P3-03: pesos y checkpoints de entrenamiento (van por DVC/S3, no por git),
 # tracking local de MLflow, y datos derivados (recortes por caja) que se
 # regeneran desde data/raw -- no son la fuente de verdad.
@@ -31,3 +35,11 @@ reports/.quality_gate.passed
 mlruns/
 mlflow-store/
 data/derived/
+
+# P3-14: paquetes de modelo, extracciones de recarga y salidas locales de verificación
+# (se regeneran con publish.py / verify_reload.py / recarga_limpia.py).
+dist/
+build/
+eval_v*/
+ref_010.csv
+recarga_*.txt

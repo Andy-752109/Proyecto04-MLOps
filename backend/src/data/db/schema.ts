@@ -304,6 +304,65 @@ export type TrainingJobRow = typeof trainingJobs.$inferSelect;
 export type NewTrainingJobRow = typeof trainingJobs.$inferInsert;
 
 /**
+ * inference_submissions (P3-16, #24)
+ *
+ * "Enviar a cola de anotación" desde la página Inference: la imagen en sí
+ * ya se creó con el `POST /images` que existe desde P2 (`image-upload
+ * .service.ts`, estado `pending` por default) -- esta tabla solo guarda la
+ * sugerencia del modelo sobre esa imagen, para que quien anote la vea sin
+ * tener que volver a correr la inferencia. `ml-api` (Python) no escribe
+ * aquí directamente: el backend Node crea la fila después de llamar a
+ * `POST /predict` él mismo.
+ */
+export const inferenceSubmissions = mysqlTable(
+  'inference_submissions',
+  {
+    id: bigint('id', {
+      mode: 'number',
+      unsigned: true,
+    })
+      .autoincrement()
+      .primaryKey(),
+
+    // Imagen creada por este mismo flujo de envío a cola.
+    imageId: bigint('image_id', {
+      mode: 'number',
+      unsigned: true,
+    })
+      .notNull()
+      .references(() => images.id, {
+        onDelete: 'cascade',
+      }),
+
+    // "cat"/"dog" -- la clase que predijo el modelo, no la que anote la persona.
+    predictedLabel: varchar('predicted_label', {
+      length: 50,
+    }).notNull(),
+
+    // Probabilidad por clase ({"cat": 0.9, "dog": 0.1}), igual que devuelve
+    // `POST /predict` -- conserva el detalle completo, no solo la ganadora.
+    probabilities: json('probabilities').notNull(),
+
+    // Versión y hash del modelo que hizo la sugerencia (ver `models/registry.json`,
+    // P3-14) -- trazabilidad: con qué modelo exacto se sugirió esta clase.
+    modelVersion: varchar('model_version', {
+      length: 50,
+    }).notNull(),
+
+    checkpointSha256: varchar('checkpoint_sha256', {
+      length: 64,
+    }).notNull(),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+
+  (table) => [index('inference_submissions_image_id_idx').on(table.imageId)],
+);
+
+export type InferenceSubmissionRow = typeof inferenceSubmissions.$inferSelect;
+export type NewInferenceSubmissionRow = typeof inferenceSubmissions.$inferInsert;
+
+/**
  * Tipos TypeScript generados automáticamente desde el esquema.
  */
 export type Image = typeof images.$inferSelect;

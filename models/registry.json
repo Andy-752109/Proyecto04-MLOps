@@ -1,0 +1,20 @@
+{
+    "0.1.0": {
+        "s3_path": "s3://mlops-p3-models-222629887955/models/releases/v0.1.0/model_release_v0.1.0.tar.gz",
+        "sha256": "02d0d454a59dea842c7d89c4f950ee4231a5ae035c5140c32713d4b1c18aaa06",
+        "VersionId": "VhbG4LZnDiYc_8hduR4kPUiVfrJzZFBj",
+        "run_id": "b828e032156e423097e90d797b643faa",
+        "checkpoint_sha256": "9875970463ed8f5977e8fccb5bb25044c7fd75d99268f8b6b4cb5845f77b2a1e",
+        "data_release": "v0.1.1",
+        "published_at": "2026-10-03T01:26:45.239074+00:00"
+    },
+    "1.0.0": {
+        "s3_path": "s3://mlops-p3-models-222629887955/models/releases/v1.0.0/model_release_v1.0.0.tar.gz",
+        "sha256": "bb93a41c8f83a2e42b5f3c337136804f9734687a8ba58360308945347cdfa270",
+        "VersionId": "V8H6fouL5HiaUvrxAz1gUI5RbRD008VH",
+        "run_id": "7e7b4a4b35464cfebb6b41714a3ad931",
+        "checkpoint_sha256": "f759cde23fc314b63c4a4e3c20127ef1eb84121e579b04e7c97911ada20ab7d9",
+        "data_release": "v0.1.1",
+        "published_at": "2026-10-03T01:27:42.973813+00:00"
+    }
+}

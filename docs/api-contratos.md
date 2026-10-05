@@ -31,8 +31,11 @@ expone: es un servicio Python aparte, no una ruta más del backend existente.
 | `/ml-api/training/jobs` | GET | → `TrainingJobList` | Real (lee `training_jobs`) |
 | `/ml-api/training/jobs` | POST | `CreateTrainingJobRequest` → `TrainingJob` (201) | Real (P3-09) — valida y encola en `queued` |
 | `/ml-api/experiments` | GET | `PendingEndpoint` | Pendiente — P3-12 |
-| `/ml-api/evaluation` | GET | `PendingEndpoint` o `EvaluationLocked` | P3-11: bloquea sin `selection.json`; P3-13/P3-15 llenan los datos |
-| `/ml-api/models` | GET | `PendingEndpoint` | Pendiente — P3-14 |
+| `/ml-api/evaluation` | GET | `EvaluationReport`, `EvaluationLocked` o `PendingEndpoint` | Real (P3-15): candado P3-11; `PendingEndpoint` (P3-13) solo si falta `reports/evaluation` |
+| `/ml-api/crops/{crop_id}` | GET | `image/jpeg` | Real (P3-15): recorte real de `data/derived/crops/images/` |
+| `/ml-api/models` | GET | `ModelList` o `PendingEndpoint` | P3-15: lee `models/registry.json` (P3-14); `PendingEndpoint` mientras no exista |
+| `/ml-api/models/{version}` | GET | `ModelDetail` | Real (P3-15): tarjeta, procedencia y URL prefirmada |
+| `/ml-api/models/active` | POST | `SetActiveVersionRequest` → `ModelDetail` | Real (P3-15): rechaza marcar una versión sin objeto en S3 |
 | `/ml-api/inference` | GET | `PendingEndpoint` | Pendiente — P3-16 |
 
 El progreso de una corrida (`status`/`progress`/`logs`/`heartbeat_at`) lo
@@ -151,3 +154,85 @@ cerrada, vuelve a responder `PendingEndpoint` (P3-13).
 El candado (`app/selection/lock.py`) lo usa también `final.py` (P3-13): con
 `--split test` exige la selección cerrada y el hash coincidente; con
 `--split validation` está exento (es el ensayo previo al cierre).
+
+## Evaluation (P3-15)
+
+`/ml-api/evaluation` responde, en este orden:
+
+1. `EvaluationLocked` (200) si el candado de P3-11 está activo.
+2. `PendingEndpoint` (200, ticket `P3-13`) si la selección está cerrada pero
+   todavía no existen `reports/evaluation/{metrics,analysis}.json`.
+3. `EvaluationReport` (200) cuando ambos existen. La API **no recalcula**: solo
+   une el sello de P3-11 (`selection.json`) con lo que P3-13 midió una sola vez.
+
+| Campo | Fuente | Notas |
+|---|---|---|
+| `run_id`, `release`, `manifest_id`, `manifest_sha256`, `checkpoint_sha256`, `selected_at` | `selection.json` | procedencia |
+| `grid_row`, `best_val_accuracy`, `best_val_macro_f1`, `best_val_loss` | `selection.json.candidate` | métricas de validación del candidato |
+| `classes`, `accuracy`, `macro_f1`, `confusion_matrix`, `per_class`, `total` | `evaluation/metrics.json` | accuracy = diagonal ÷ total, sin redondear |
+| `baseline_majority_accuracy`, `most_confused_class`, `recall_per_class`, `accuracy_hides_low_recall`, `successes`, `errors` | `evaluation/analysis.json` | `successes`/`errors` son `EvaluationExample` |
+
+`EvaluationExample`: `{crop_id, source_image_id, true_class, predicted_class,
+probability}`. El frontend arma la imagen con `/ml-api/crops/<crop_id>`.
+
+### `/ml-api/crops/{crop_id}` (P3-15)
+
+Sirve `data/derived/crops/images/<crop_id>.jpg` (P3-04). `crop_id` se revalida
+con `^\d{6}_\d{6}$` antes de tocar el disco (path traversal): un valor inválido
+da `400`, un archivo ausente `404`.
+
+## Models (P3-15)
+
+El catálogo lo produce **P3-14** (`app/publish.py`, #62) en
+`models/registry.json`: un dict `version → entrada`, con los nombres de campo
+tal como los escribe `publish.py` (no se inventan).
+
+```json
+{
+  "0.1.0": {
+    "s3_path": "s3://mlops-p3-models-222629887955/models/releases/v0.1.0/model_release_v0.1.0.tar.gz",
+    "sha256": "…",            // SHA-256 del tar.gz
+    "VersionId": "…",         // VersionId de S3 al publicar
+    "run_id": "b828e0…",
+    "checkpoint_sha256": "…",
+    "data_release": "v0.1.1",  // versión del DATASET
+    "published_at": "2026-10-03T01:26:45+00:00"
+  },
+  "1.0.0": { "…": "run_id 7e7b4a4b… (r02, seleccionada)" }
+}
+```
+
+`dataset_version` (que expone la API desde `data_release`) va separada de
+`version`: la versión del dataset no es la del modelo (requisito del #23). El
+registry **no** trae `manifest_id`, `run_kind`, `selected` ni la tarjeta:
+- `selected` se deriva comparando `run_id` con `reports/selection.json` (P3-11);
+- `manifest_id` y `run_kind` se leen del `package.json`, y la tarjeta de
+  `model_card.md`, ambos **dentro del `.tar.gz`** en S3 (`storage/model_store.py`,
+  cacheado por `VersionId`).
+
+| Ruta | Contrato | Notas |
+|---|---|---|
+| `GET /ml-api/models` | `ModelList` o `PendingEndpoint` (P3-14) | agrega `head-object` en vivo (`s3_status`) |
+| `GET /ml-api/models/{version}` | `ModelDetail` | tarjeta + trazabilidad + URL prefirmada |
+| `POST /ml-api/models/active` | `{version}` → `ModelDetail` | 400 si el objeto no existe en S3, 404 si la versión no está en el registry |
+
+`/models` responde `PendingEndpoint` (ticket `P3-14`) solo si todavía no existe
+`models/registry.json`.
+
+La **versión activa para inferencia** (P3-16) vive en
+`models/active_version.json` (`{"active_version": "1.0.0"}`), escrito
+atómicamente por `ml-api`. `ml-api` monta `./models` (lectura/escritura) y
+`~/.aws` (solo lectura) con `AWS_PROFILE=mlops-p3`; el `.gitignore` excluye
+`models/active_version.json*`.
+
+### Nota de verificación (P3-16)
+
+El criterio del #23 «cambiar la versión activa cambia el SHA-256 que carga
+`ml-api`» se cierra con P3-16 (Inference), que todavía no existe: aquí se
+implementa el selector y el rechazo del objeto inexistente, y el resto se
+verifica cuando Inference consuma `active_version.json`.
+
+### Decisión abierta (P3-16)
+
+`active_version.json` vs una tabla en MariaDB: si P3-16 prefiere leerlo de la
+base (como `training_jobs`), se migra sin tocar el contrato HTTP.

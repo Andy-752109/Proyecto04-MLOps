@@ -61,8 +61,13 @@ def make_crop_id(source_image_id: int, annotation_id: int) -> str:
     return f"{source_image_id:06d}_{annotation_id:06d}"
 
 
-def _pixel_bounds(bbox: list[float], width: int, height: int) -> tuple[int, int, int, int]:
-    """Convierte una bbox COCO `[x, y, w, h]` en píxeles, recortada a la imagen."""
+def pixel_bounds(bbox: list[float], width: int, height: int) -> tuple[int, int, int, int]:
+    """Convierte una bbox COCO `[x, y, w, h]` en píxeles, recortada a la imagen.
+
+    Pública (no `_pixel_bounds`): P3-16 (#24) la reutiliza para recortar una
+    anotación ya existente al vuelo (`ml_api/inference.py`), no solo al
+    materializar `crops/images/*.jpg` aquí.
+    """
     x, y, w, h = bbox
     x0 = max(0, math.floor(x))
     y0 = max(0, math.floor(y))
@@ -117,7 +122,7 @@ def plan_crops(
             exclusions.append(_exclusion_row(annotation, image, reason))
             continue
 
-        x0, y0, x1, y1 = _pixel_bounds(annotation["bbox"], image["width"], image["height"])
+        x0, y0, x1, y1 = pixel_bounds(annotation["bbox"], image["width"], image["height"])
         if x1 <= x0 or y1 <= y0:
             exclusions.append(_exclusion_row(annotation, image, "empty_crop"))
             continue
