@@ -1,0 +1,58 @@
+[project]
+name = "dataset-quality-pipeline"
+version = "0.1.0"
+description = "Pipeline de calidad de dataset (Fase 2): ingesta, analizadores, compuerta, splits y versionado."
+requires-python = "==3.12.*"
+dependencies = [
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+    "pyyaml>=6.0,<7",
+    "sqlalchemy>=2.0,<3",
+    "pymysql>=1.1,<2",
+    "boto3>=1.35,<2",
+    "minio>=7.2,<8",
+    "pillow>=10.4,<11",
+    "imagehash>=4.3,<5",
+    "mcp>=2.2.0",
+    "numpy>=2,<3",
+    "scikit-learn>=1.5,<2",
+    "anthropic>=1.7,<2",
+    "starlette>=1.6,<2",
+    "uvicorn>=0.53,<1",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.7,<1",
+    "pytest>=8.3,<9",
+]
+# Fijadas con "==" a propósito (P3-03): la campaña de entrenamiento necesita
+# que todo el equipo reproduzca la misma versión exacta de torch/torchvision,
+# no un rango que uv pueda resolver distinto en cada máquina. torch/torchvision
+# (P3-05) y pandas (P3-07) habían llegado a `dependencies`; se mueven aquí
+# porque solo los usa app/training/, así app/copilot no los cargan (el CI
+# sigue instalándolos vía `--group ml` para poder correr esas pruebas).
+ml = [
+    "torch==2.14.0",
+    "torchvision==0.29.0",
+    "mlflow==3.16.1",
+    "scikit-learn==1.9.1",
+    "pillow==10.4.0",
+    "pandas>=3.0.6",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["ingestion", "analyzers", "policies", "splits", "storage", "presentation", "copilot", "crops", "manifest", "training", "ml_api", "ml_worker", "mlflow_ops", "selection", "select_candidate", "validate_runs", "evaluation", "final", "recompute", "tests"]
+
+[tool.ruff.lint]
+# E/F: errores y pyflakes. I: orden de imports. B: bugbear (bugs probables).
+# SIM: simplificaciones. C4: comprensiones y literales. RUF: reglas propias de Ruff
+# (p. ej. regex sin escapar en `pytest.raises(match=...)`, `noqa` que ya no aplican).
+select = ["E", "F", "I", "B", "SIM", "C4", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ingestion", "analyzers", "policies", "splits", "storage", "presentation", "copilot", "crops", "manifest", "training", "ml_api", "ml_worker", "mlflow_ops", "selection", "select_candidate", "validate_runs", "evaluation", "final", "recompute"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

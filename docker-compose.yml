@@ -1,0 +1,260 @@
+# Variables que exige `storage.settings.Settings` (las usan `app` y `copilot`).
+x-pipeline-env: &pipeline-env
+  DATABASE_URL: "mysql+pymysql://root:${MARIADB_ROOT_PASSWORD:?Define MARIADB_ROOT_PASSWORD en .env}@mariadb:3306/image_repo"
+  MINIO_ENDPOINT: minio
+  MINIO_PORT: 9000
+  MINIO_USE_SSL: "false"
+  MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
+  MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD en .env}
+  MINIO_BUCKET: image-annotations
+  DATASET_DIR: /app/data/raw
+  REPORTS_DIR: /app/reports
+  DERIVED_DIR: /app/data/derived
+
+services:
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Define MARIADB_ROOT_PASSWORD en .env}
+      MARIADB_DATABASE: image_repo
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -uroot -p\"$${MARIADB_ROOT_PASSWORD}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    # Fuera del alcance de P3-03, pero encontrado al probarlo: `quay.io/minio/minio`
+    # (la imagen que ya estaba aquí) empezó a devolver "401 UNAUTHORIZED" al
+    # jalarla anónimamente -- probado repetido, no es un problema transitorio de
+    # esta corrida. `minio/minio` (Docker Hub) sigue siendo pública.
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD en .env}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  backend:
+    build: ./backend
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      DATABASE_URL: "mysql://root:${MARIADB_ROOT_PASSWORD:?Define MARIADB_ROOT_PASSWORD en .env}@mariadb:3306/image_repo"
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Define MARIADB_ROOT_PASSWORD en .env}
+      DB_NAME: image_repo
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD en .env}
+      MINIO_BUCKET: image-annotations
+      MAX_UPLOAD_SIZE_BYTES: 5242880
+      PIPELINE_CONFIG_ROOT: /pipeline
+    volumes:
+      - ./app/policies:/pipeline/policies
+      - ./app/splits:/pipeline/splits
+    ports:
+      - "3100:3100"
+    restart: on-failure:5
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api
+    depends_on:
+      - backend
+      - copilot
+    ports:
+      - "8080:80"
+    volumes:
+      # P2-22/23/24: el gate (servicio `app`) escribe reportes acá; nginx
+      # los sirve como estático en /reports/*.json, sin backend HTTP nuevo.
+      - ./reports:/usr/share/nginx/html/reports:ro
+
+  app:
+    build: ./app
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment: *pipeline-env
+    volumes:
+      # Dataset real (anotaciones + imágenes), de solo lectura: el gate no
+      # escribe ahí, solo lee. El pipeline Python nunca gestionó data/raw/
+      # como parte de su propia imagen (ver app/Dockerfile).
+      - ./data/raw:/app/data/raw:ro
+      - ./reports:/app/reports
+      - ./app/policies:/app/policies:ro
+      - ./app/splits:/app/splits:ro
+    restart: on-failure:5
+
+  # P2-52: agente del Copilot (LLM + herramientas MCP de solo lectura). Misma
+  # imagen que `app`, otro comando. No se publica ningún puerto: solo nginx
+  # (servicio `frontend`) lo alcanza, en /copilot-api/. Sin ANTHROPIC_API_KEY
+  # arranca igual y el chat responde 503 explicando qué falta.
+  copilot:
+    build: ./app
+    command: ["python", "-m", "copilot.server"]
+    environment:
+      <<: *pipeline-env
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      COPILOT_MODEL: ${COPILOT_MODEL:-claude-opus-5}
+      COPILOT_HOST: 0.0.0.0
+    volumes:
+      # Solo lectura: el Copilot consulta el dataset y los reportes, nunca escribe.
+      - ./data/raw:/app/data/raw:ro
+      - ./reports:/app/reports:ro
+    restart: on-failure:5
+
+  # P3-03: crea la base "mlflow" en MariaDB (backend store) antes de que
+  # arranque el servicio `mlflow`. Un script de init de MariaDB no sirve
+  # aquí: solo corre la primera vez que el volumen `mariadb_data` se crea, y
+  # ese volumen ya existe desde P1/P2 en cualquier clon que venga de antes.
+  mariadb-mlflow-db:
+    image: mariadb:11
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Define MARIADB_ROOT_PASSWORD en .env}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mariadb -h mariadb -uroot -p"$$MARIADB_ROOT_PASSWORD"
+        -e "CREATE DATABASE IF NOT EXISTS mlflow;"
+    restart: "no"
+
+  # Crea el bucket de artefactos de MLflow en MinIO si no existe.
+  # `mlflow_ops.ensure_bucket` (SDK `minio`, ya dependencia de `app/`) en vez
+  # de `mc mb`: tanto `minio/mc` (Docker Hub, "pull access denied") como
+  # `quay.io/minio/mc` (Quay, "401 unauthorized") dejaron de poderse jalar
+  # sin autenticarse -- ambos probados al armar este ticket. Reusa la imagen
+  # de `app` (mismo Dockerfile que `app`/`copilot`), no pide una nueva.
+  minio-mlflow-bucket:
+    build: ./app
+    command: ["python", "-m", "mlflow_ops.ensure_bucket"]
+    depends_on:
+      minio:
+        condition: service_started
+    environment: *pipeline-env
+    restart: "no"
+
+  # P3-03: registros en MariaDB (bd "mlflow"), artefactos en el bucket MinIO
+  # "mlflow-artifacts" -- ambos con volumen persistente (mariadb_data/
+  # minio_data, ya declarados abajo). Puerto 5050 en el host: 5000 choca con
+  # AirPlay en macOS (ver docs/decisiones-proyecto3.md).
+  mlflow:
+    build: ./docker/mlflow
+    depends_on:
+      mariadb-mlflow-db:
+        condition: service_completed_successfully
+      minio-mlflow-bucket:
+        condition: service_completed_successfully
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Define MARIADB_ROOT_PASSWORD en .env}
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD en .env}
+    # `--allowed-hosts`: sin esto, MLflow 3.x rechaza con 403 "Invalid Host
+    # header" cualquier request cuyo Host no esté en la lista -- su protección
+    # anti DNS-rebinding solo permite localhost por default, y el check exige
+    # el host CON el puerto exacto que trae la request (probado real,
+    # confirmado en el log del propio middleware): "mlflow:5000" para
+    # requests entre contenedores (puerto interno 5000) y "localhost:5050"
+    # para requests desde el host (puerto publicado 5050) -- "mlflow" o
+    # "localhost" sin puerto no bastan.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mlflow server --host 0.0.0.0 --port 5000
+        --backend-store-uri "mysql+pymysql://root:$$MARIADB_ROOT_PASSWORD@mariadb:3306/mlflow"
+        --artifacts-destination s3://mlflow-artifacts
+        --serve-artifacts
+        --allowed-hosts mlflow,mlflow:5000,localhost,localhost:5050
+    ports:
+      - "5050:5000"
+    restart: on-failure:5
+
+  # P3-03: placeholder de infraestructura -- el bucle real de entrenamiento
+  # es P3-09. Comparte imagen con `ml-api` (Dockerfile.ml, grupo `ml`), cada
+  # uno con su propio comando, mismo patrón que `app`/`copilot` con Dockerfile.
+  trainer-worker:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.ml
+      # Revisión de Uriel sobre P3-09: el commit que cuenta es el que de
+      # verdad se copió a la imagen (Dockerfile.ml), no el checkout del host
+      # en el momento en que arranca el contenedor. Se hornea aquí, una sola
+      # vez por build; `get_git_info()` (P3-08) ya prioriza estas variables
+      # sobre `git` en vivo. Si GIT_COMMIT/GIT_DIRTY no están en el entorno
+      # del host al hacer `docker compose build`, exportalas antes (ver
+      # scripts/build_trainer.sh) -- si no, la imagen queda con "unknown".
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        GIT_DIRTY: ${GIT_DIRTY:-unknown}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+    environment:
+      <<: *pipeline-env
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      AWS_PROFILE: ${AWS_PROFILE:?Define AWS_PROFILE en .env (el perfil SSO del equipo, ej. mlops-p3)}
+    volumes:
+      - ./data/raw:/app/data/raw:ro
+      - ./data/derived:/app/data/derived:ro
+      - ./reports:/app/reports:ro
+      # Solo lectura: el rol MLOpsP3 del equipo, nunca credenciales estáticas
+      # horneadas en la imagen (M2/P3-00b).
+      - ~/.aws:/home/appuser/.aws:ro
+    restart: on-failure:5
+
+  # P3-03: /health y /training/jobs (real); Experiments/Evaluation/Models/
+  # Inference responden "pending" hasta P3-12..P3-16. Sin publicar puerto:
+  # solo nginx (servicio `frontend`) lo alcanza, en /ml-api/.
+  ml-api:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.ml
+    command: ["python", "-m", "ml_api.server"]
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+    environment:
+      <<: *pipeline-env
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      ML_API_HOST: 0.0.0.0
+    volumes:
+      # P3-09: solo lectura -- ml-api valida (reports/releases, manifest.csv),
+      # nunca escribe el dataset derivado.
+      - ./data/derived:/app/data/derived:ro
+      - ./reports:/app/reports:ro
+    restart: on-failure:5
+
+volumes:
+  mariadb_data:
+  minio_data:

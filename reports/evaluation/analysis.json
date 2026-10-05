@@ -1,0 +1,62 @@
+{
+  "baseline_majority_accuracy": 0.5342465753424658,
+  "most_confused_class": "dog",
+  "recall_per_class": {
+    "cat": 1.0,
+    "dog": 0.9705882352941176
+  },
+  "accuracy_hides_low_recall": false,
+  "successes": [
+    {
+      "crop_id": "000008_000001",
+      "source_image_id": "8",
+      "true_class": "cat",
+      "predicted_class": "cat",
+      "probability": 0.9534333348274231
+    },
+    {
+      "crop_id": "000014_000013",
+      "source_image_id": "14",
+      "true_class": "cat",
+      "predicted_class": "cat",
+      "probability": 0.9984340071678162
+    },
+    {
+      "crop_id": "000021_000020",
+      "source_image_id": "21",
+      "true_class": "cat",
+      "predicted_class": "cat",
+      "probability": 0.9860091805458069
+    },
+    {
+      "crop_id": "000037_000072",
+      "source_image_id": "37",
+      "true_class": "dog",
+      "predicted_class": "dog",
+      "probability": 0.9986948370933533
+    },
+    {
+      "crop_id": "000038_000071",
+      "source_image_id": "38",
+      "true_class": "dog",
+      "predicted_class": "dog",
+      "probability": 0.9962741136550903
+    },
+    {
+      "crop_id": "000042_000068",
+      "source_image_id": "42",
+      "true_class": "dog",
+      "predicted_class": "dog",
+      "probability": 0.9996596574783325
+    }
+  ],
+  "errors": [
+    {
+      "crop_id": "000275_000320",
+      "source_image_id": "275",
+      "true_class": "dog",
+      "predicted_class": "cat",
+      "probability": 0.5771472454071045
+    }
+  ]
+}

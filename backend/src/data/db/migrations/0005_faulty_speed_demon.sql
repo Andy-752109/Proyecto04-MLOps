@@ -1,0 +1,1 @@
+ALTER TABLE `training_jobs` ADD `cancel_requested_at` timestamp;

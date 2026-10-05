@@ -1,0 +1,33 @@
+# Entorno y credenciales locales (las plantillas sí se versionan).
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Entorno Python opcional para DVC.
+.venv-dvc/
+
+# Credenciales específicas de DVC; nunca se comparten con Git.
+.dvc/config.local
+
+# Datos derivados (recortes COCO); viven en DVC, no en Git.
+data/derived/
+
+# Terraform local artifacts at any depth; provider lockfiles remain versioned.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
+# Marcador interno de la compuerta DVC; se recrea en cada repro aprobado.
+reports/.quality_gate.passed
+
+# P3-03: pesos y checkpoints de entrenamiento (van por DVC/S3, no por git),
+# tracking local de MLflow, y datos derivados (recortes por caja) que se
+# regeneran desde data/raw -- no son la fuente de verdad.
+*.pt
+*.pth
+*.ckpt
+mlruns/
+mlflow-store/
+data/derived/

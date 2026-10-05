@@ -1,0 +1,32 @@
+{
+  "manifest_id": "v0.1.1-53fc84fdaa07",
+  "manifest_sha256": "53fc84fdaa0715f37d90324ae49be39034e2a67bc09ae0a1f1fec8425aeec80f",
+  "manifest_path": "data/derived/manifests/v0.1.1/manifest.csv",
+  "crops_root": "data/derived/crops",
+  "release": {
+    "name": "v0.1.1",
+    "images_md5": "951150dd4fb053f4665089fcb37a1c87.dir",
+    "annotations_md5": "c7cb86ae7ece94ef7b853620e464a4d7.dir"
+  },
+  "crops_catalog_sha256": "2832214c38208921004e1270ddc88a7955426f3401143a83a540109237510398",
+  "quality_reference": {
+    "path": "reports/releases/v0.1.1/quality.json",
+    "sha256": "89c1ff7a7bb2a8843fe9da2b2d8bcb2b36afce0ae9f886e48b94caa165afaf6a",
+    "status": "warning",
+    "dataset_version": "v0.1.1"
+  },
+  "seed": 42,
+  "ratios": {
+    "train": 0.7,
+    "val": 0.2,
+    "test": 0.1
+  },
+  "max_deviation_pp": 5.0,
+  "classes": {
+    "0": "cat",
+    "1": "dog"
+  },
+  "duplicate_similarity_threshold": 0.94,
+  "duplicate_pairs": 0,
+  "rows": 668
+}

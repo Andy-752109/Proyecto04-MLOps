@@ -1,0 +1,88 @@
+{
+  "release": "v0.1.1",
+  "seed": 42,
+  "max_deviation_pp": 5.0,
+  "totals": {
+    "crops": 668,
+    "originals": 600,
+    "duplicate_groups": 600,
+    "classes": {
+      "cat": {
+        "crops": 343,
+        "originals": 301
+      },
+      "dog": {
+        "crops": 325,
+        "originals": 300
+      }
+    }
+  },
+  "splits": {
+    "train": {
+      "target_fraction": 0.7,
+      "crops": 464,
+      "originals": 420,
+      "duplicate_groups": 420,
+      "crops_fraction": 0.694611,
+      "deviation_pp": -0.5389,
+      "classes": {
+        "cat": {
+          "crops": 237,
+          "originals": 211,
+          "crops_fraction_of_class": 0.690962,
+          "deviation_pp": -0.9038
+        },
+        "dog": {
+          "crops": 227,
+          "originals": 210,
+          "crops_fraction_of_class": 0.698462,
+          "deviation_pp": -0.1538
+        }
+      }
+    },
+    "val": {
+      "target_fraction": 0.2,
+      "crops": 131,
+      "originals": 120,
+      "duplicate_groups": 120,
+      "crops_fraction": 0.196108,
+      "deviation_pp": -0.3892,
+      "classes": {
+        "cat": {
+          "crops": 67,
+          "originals": 60,
+          "crops_fraction_of_class": 0.195335,
+          "deviation_pp": -0.4665
+        },
+        "dog": {
+          "crops": 64,
+          "originals": 60,
+          "crops_fraction_of_class": 0.196923,
+          "deviation_pp": -0.3077
+        }
+      }
+    },
+    "test": {
+      "target_fraction": 0.1,
+      "crops": 73,
+      "originals": 60,
+      "duplicate_groups": 60,
+      "crops_fraction": 0.109281,
+      "deviation_pp": 0.9281,
+      "classes": {
+        "cat": {
+          "crops": 39,
+          "originals": 30,
+          "crops_fraction_of_class": 0.113703,
+          "deviation_pp": 1.3703
+        },
+        "dog": {
+          "crops": 34,
+          "originals": 30,
+          "crops_fraction_of_class": 0.104615,
+          "deviation_pp": 0.4615
+        }
+      }
+    }
+  }
+}

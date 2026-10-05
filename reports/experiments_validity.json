@@ -1,0 +1,32 @@
+{
+  "manifest_sha256": "53fc84fdaa0715f37d90324ae49be39034e2a67bc09ae0a1f1fec8425aeec80f",
+  "classes": {
+    "0": "cat",
+    "1": "dog"
+  },
+  "min_required": 10,
+  "valid": [
+    "0430937ba09d49a78ae67abd62da26cb",
+    "9f0caa6305f1477795596e930ab7a28b",
+    "7e7b4a4b35464cfebb6b41714a3ad931",
+    "7fe4e6afbe424331934017a11a0b2f17",
+    "e91087b8d30a43abb91f159acecfd886",
+    "00143fe56a564f9a8226c67004c13bdc",
+    "0d202fdb6fd849a59a1423eaea882165",
+    "f13d017045c24e8aa59320e6cbcb9126",
+    "e7bf686b020f4d02a3fc3e1462e9da33",
+    "5e9ae5ebd2e146528a15a4cb5286795d"
+  ],
+  "invalid": [],
+  "per_param_values": {
+    "optimizer": 2,
+    "batch_size": 2,
+    "max_epochs": 2,
+    "learning_rate": 5,
+    "image_size": 2,
+    "hidden_layers": 2,
+    "dropout": 3
+  },
+  "passed": true,
+  "produced_at": "2026-10-02T05:43:09.969650Z"
+}

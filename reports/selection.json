@@ -1,0 +1,16 @@
+{
+  "run_id": "7e7b4a4b35464cfebb6b41714a3ad931",
+  "release": "v0.1.1",
+  "manifest_id": "v0.1.1-53fc84fdaa07",
+  "manifest_sha256": "53fc84fdaa0715f37d90324ae49be39034e2a67bc09ae0a1f1fec8425aeec80f",
+  "checkpoint_sha256": "f759cde23fc314b63c4a4e3c20127ef1eb84121e579b04e7c97911ada20ab7d9",
+  "test_ids_sha256": "2ff781befc9d118ead9f9af49274fa541e63457d89be306033d22bd563eb4b22",
+  "selected_at": "2026-10-02T05:43:20.705345Z",
+  "selection_metric": "best_val_accuracy",
+  "candidate": {
+    "grid_row": "r02",
+    "best_val_accuracy": 0.9618320610687023,
+    "best_val_macro_f1": 0.9618231625575566,
+    "best_val_loss": 0.12332657724618912
+  }
+}

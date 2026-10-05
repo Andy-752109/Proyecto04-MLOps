@@ -1,0 +1,102 @@
+{
+  "properties": {
+    "optimizer": {
+      "enum": [
+        "adam",
+        "sgd"
+      ],
+      "title": "Optimizer",
+      "type": "string"
+    },
+    "batch_size": {
+      "enum": [
+        16,
+        32
+      ],
+      "title": "Batch Size",
+      "type": "integer"
+    },
+    "max_epochs": {
+      "enum": [
+        15,
+        30
+      ],
+      "title": "Max Epochs",
+      "type": "integer"
+    },
+    "learning_rate": {
+      "maximum": 0.01,
+      "minimum": 0.0001,
+      "title": "Learning Rate",
+      "type": "number"
+    },
+    "image_size": {
+      "enum": [
+        128,
+        160
+      ],
+      "title": "Image Size",
+      "type": "integer"
+    },
+    "hidden_layers": {
+      "enum": [
+        0,
+        1
+      ],
+      "title": "Hidden Layers",
+      "type": "integer"
+    },
+    "dropout": {
+      "enum": [
+        0.0,
+        0.3,
+        0.5
+      ],
+      "title": "Dropout",
+      "type": "number"
+    },
+    "seed_split": {
+      "title": "Seed Split",
+      "type": "integer"
+    },
+    "seed_train": {
+      "title": "Seed Train",
+      "type": "integer"
+    },
+    "seed_aug": {
+      "title": "Seed Aug",
+      "type": "integer"
+    },
+    "seed_model": {
+      "title": "Seed Model",
+      "type": "integer"
+    },
+    "patience": {
+      "minimum": 0,
+      "title": "Patience",
+      "type": "integer"
+    },
+    "min_delta": {
+      "minimum": 0.0,
+      "title": "Min Delta",
+      "type": "number"
+    }
+  },
+  "required": [
+    "optimizer",
+    "batch_size",
+    "max_epochs",
+    "learning_rate",
+    "image_size",
+    "hidden_layers",
+    "dropout",
+    "seed_split",
+    "seed_train",
+    "seed_aug",
+    "seed_model",
+    "patience",
+    "min_delta"
+  ],
+  "title": "TrainingConfig",
+  "type": "object"
+}

@@ -1,0 +1,1 @@
+{"base_model": "resnet18", "pretrained": "IMAGENET1K_V1", "head": "configurable"}

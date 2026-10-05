@@ -1,0 +1,14 @@
+# P3-06: parámetros del manifiesto de recortes (etapa `manifest` de dvc.yaml).
+# Congelado: si cambia después de la primera corrida, se repiten las corridas.
+# El 70/15/15 de P2 vive aparte (app/splits/splits.yaml) y no se toca.
+release: v0.1.1
+train: 0.70
+val: 0.20
+test: 0.10
+seed: 42
+# El orden define la etiqueta: cat = 0, dog = 1 (docs/decisiones-proyecto3.md §3).
+classes:
+  - cat
+  - dog
+# Desviación máxima de recortes por partición, en puntos porcentuales.
+max_deviation_pp: 5.0
