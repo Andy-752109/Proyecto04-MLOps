@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/pipeline/components/PageHeader";
 import type { EvaluationExample, EvaluationReport } from "../api/contracts";
 import { cropImageUrl, getEvaluation, PREDICTIONS_CSV_URL } from "../api/evaluation";
-import { ExampleViewer } from "./ExampleViewer";
-import { percent } from "./format";
 
 type State =
   | { status: "loading" }
   | { status: "error" }
   | { status: "success"; data: Awaited<ReturnType<typeof getEvaluation>> };
+
+function percent(value: number): string {
+  return `${(value * 100).toFixed(2)}%`;
+}
 
 function MetricCard({
   label,
@@ -191,8 +193,6 @@ function ReportView({ report }: Readonly<{ report: EvaluationReport }>) {
             : "Ninguna clase tiene un recall bajo: la accuracy no esconde fallas."}
         </p>
       </div>
-
-      <ExampleViewer successes={report.successes} errors={report.errors} />
 
       <Gallery title="Aciertos" examples={report.successes} />
       <Gallery title="Errores" examples={report.errors} />
