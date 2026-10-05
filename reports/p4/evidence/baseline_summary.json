@@ -1,0 +1,19 @@
+{
+  "package_dir": "eval_v1.0.0",
+  "checkpoint_sha256": "f759cde23fc314b63c4a4e3c20127ef1eb84121e579b04e7c97911ada20ab7d9",
+  "manifest_sha256": "53fc84fdaa0715f37d90324ae49be39034e2a67bc09ae0a1f1fec8425aeec80f",
+  "split": "val",
+  "rows": 131,
+  "unique_ids": 131,
+  "classes_present": [
+    "cat",
+    "dog"
+  ],
+  "correct": 126,
+  "accuracy": 0.9618320610687023,
+  "best_val_accuracy_selection": 0.9618320610687023,
+  "accuracy_matches_selection": true,
+  "parity_rows": 20,
+  "image_size": 128,
+  "torch": "2.14.0"
+}

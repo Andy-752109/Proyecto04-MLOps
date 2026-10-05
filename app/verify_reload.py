@@ -2,6 +2,7 @@
 y que su SHA-256 coincide con el registro. Sale con código 1 si algo falla.
 
     uv run python verify_reload.py [--profile mlops-p3] [--registry ../models/registry.json]
+        [--version 1.0.0]
 """
 
 from __future__ import annotations
@@ -61,6 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("--profile", default="mlops-p3")
     p.add_argument("--registry", type=Path, default=ROOT / "models" / "registry.json")
+    p.add_argument("--version", help="Verifica solo esta versión del registro (p. ej. 1.0.0).")
     args = p.parse_args(argv)
 
     registry_path = safe_path(args.registry)
@@ -68,6 +70,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"No se encontró {registry_path}")
         return 1
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
+
+    if args.version:
+        if args.version not in registry:
+            print(f"La versión {args.version} no está en {registry_path}")
+            return 1
+        registry = {args.version: registry[args.version]}
 
     dist = ROOT / "dist"
     dist.mkdir(exist_ok=True)

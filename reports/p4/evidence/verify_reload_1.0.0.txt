@@ -1,0 +1,6 @@
+Verificando 1.0.0 (VersionId V8H6fouL5HiaUvrxAz1gUI5RbRD008VH)...
+  SHA-256 esperado:  bb93a41c8f83a2e42b5f3c337136804f9734687a8ba58360308945347cdfa270
+  SHA-256 calculado: bb93a41c8f83a2e42b5f3c337136804f9734687a8ba58360308945347cdfa270  COINCIDE
+  Extraído en /Users/karenelizabg/Documents/Universidad/Integración/Proyecto04-MLOps/eval_v1.0.0/
+
+Resultado: TODO COINCIDE
