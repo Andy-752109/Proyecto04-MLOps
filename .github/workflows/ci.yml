@@ -86,6 +86,22 @@ jobs:
         if: always()
         run: docker rm -f minio-ci || true
 
+  edge:
+    name: Edge contract (unittest offline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias edge
+        run: python -m pip install -r edge/requirements.txt
+      - name: Tests del contrato edge
+        run: python -m unittest discover -s edge/tests -v
+
   backend:
     name: Backend (Biome, tsc, tests y build)
     runs-on: ubuntu-latest
@@ -249,7 +265,7 @@ jobs:
     # `always()`: si un job falla, este también debe correr y fallar. Sin esto, un job
     # fallido dejaría a `CI OK` en "skipped", y GitHub lo trata como aprobado.
     if: always()
-    needs: [app-ml, backend, frontend, compose, quality-gate, quality-gate-prod]
+    needs: [app-ml, edge, backend, frontend, compose, quality-gate, quality-gate-prod]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

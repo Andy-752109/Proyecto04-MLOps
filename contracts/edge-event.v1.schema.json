@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Edge capture event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "capture_id",
+    "captured_at",
+    "device_id",
+    "model_version",
+    "model_sha256",
+    "runtime",
+    "predicted_class",
+    "confidence",
+    "probabilities",
+    "crop",
+    "preprocess_ms",
+    "inference_ms",
+    "image_key"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1" },
+    "capture_id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "captured_at": { "type": "string", "format": "date-time" },
+    "device_id": { "type": "string", "minLength": 1 },
+    "model_version": { "type": "string", "minLength": 1 },
+    "model_sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "runtime": { "type": "string", "minLength": 1 },
+    "predicted_class": { "type": "string", "enum": ["cat", "dog"] },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "probabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cat", "dog"],
+      "properties": {
+        "cat": { "type": "number", "minimum": 0, "maximum": 1 },
+        "dog": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "crop": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height", "frame_width", "frame_height"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "width": { "type": "integer", "exclusiveMinimum": 0 },
+        "height": { "type": "integer", "exclusiveMinimum": 0 },
+        "frame_width": { "type": "integer", "exclusiveMinimum": 0 },
+        "frame_height": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    },
+    "preprocess_ms": { "type": "number", "minimum": 0 },
+    "inference_ms": { "type": "number", "minimum": 0 },
+    "image_key": {
+      "type": "string",
+      "pattern": "^edge-captures/v1/images/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.jpg$"
+    }
+  }
+}

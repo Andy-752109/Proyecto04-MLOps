@@ -6,6 +6,7 @@
 
 # Entorno Python opcional para DVC.
 .venv-dvc/
+edge/.venv/
 
 # Credenciales específicas de DVC; nunca se comparten con Git.
 .dvc/config.local
