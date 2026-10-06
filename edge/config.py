@@ -28,6 +28,9 @@ class CameraConfig:
     height: int | None = None
     warmup_frames: int = 10
     api: str = "auto"  # auto = DirectShow en Windows, el de OpenCV en otro SO
+    # Si se define, tiene prioridad sobre `index`: se abre la cámara cuyo nombre DirectShow
+    # contiene este texto. El orden de los índices cambia entre arranques en Windows.
+    name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -117,6 +120,8 @@ def load_config(path: Path) -> EdgeConfig:
     camera = CameraConfig(**(raw.get("camera") or {}))
     if camera.api not in ("auto", "dshow", "msmf", "v4l2", "any"):
         raise ConfigError("camera.api debe ser auto, dshow, msmf, v4l2 o any")
+    if camera.name is not None and not camera.name.strip():
+        raise ConfigError("camera.name no puede estar vacío (usa null para elegir por índice)")
 
     capture = raw.get("capture") or {}
     mode = capture.get("mode", "manual")

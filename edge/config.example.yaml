@@ -3,7 +3,12 @@
 device_id: edge-laptop-01
 
 camera:
-  index: 1            # laptop edge: la cámara USB suele ser 1; la webcam integrada, 0
+  # En Windows el orden de los índices cambia entre arranques (la USB fue 1 y luego 0), así que
+  # se elige por nombre DirectShow (subcadena, sin distinguir mayúsculas). Con `name` definido,
+  # `index` se ignora. Nombres en la laptop edge: "GENERAL WEBCAM" (USB, VID 1B3F) y
+  # "USB2.0 UVC HD Webcam" (integrada). Lista los disponibles con: python -m edge cameras
+  name: GENERAL WEBCAM
+  index: 1            # solo si name: null
   api: auto           # auto = DirectShow (cv2.CAP_DSHOW) en Windows
   width: null         # null = resolución nativa de la cámara (probablemente 640x480)
   height: null

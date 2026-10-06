@@ -5,3 +5,4 @@ pillow>=10,<13
 opencv-python-headless>=4.8,<6
 onnxruntime==1.30.0  # misma versión con la que #4 verificó la paridad del ONNX
 pyyaml>=6,<7
+pygrabber>=0.2,<1; sys_platform == "win32"  # nombres de cámara DirectShow (camera.name)

@@ -71,6 +71,7 @@ class ConfigTests(unittest.TestCase):
         # Valores aprobados por el PM en #6.
         self.assertEqual(config.device_id, "edge-laptop-01")
         self.assertEqual(config.camera.index, 1)
+        self.assertEqual(config.camera.name, "GENERAL WEBCAM")  # el orden de índices cambia
         self.assertEqual(config.camera.api, "auto")
         self.assertIsNone(config.camera.width)
         self.assertEqual(config.crop, {"center_square": 0.8})
@@ -105,6 +106,21 @@ class ConfigTests(unittest.TestCase):
         for name, override in cases.items():
             with self.subTest(case=name), self.assertRaises(ConfigError):
                 load_config(write_config(self.tmp, "a" * 64, **override))
+
+    def test_camera_name_is_parsed(self) -> None:
+        config = load_config(
+            write_config(self.tmp, "a" * 64, camera={"name": "GENERAL WEBCAM", "index": 0})
+        )
+        self.assertEqual(config.camera.name, "GENERAL WEBCAM")
+
+    def test_camera_name_defaults_to_none(self) -> None:
+        config = load_config(write_config(self.tmp, "a" * 64, camera={"index": 1}))
+        self.assertIsNone(config.camera.name)
+
+    def test_blank_camera_name_is_invalid(self) -> None:
+        for name in ("", "   "):
+            with self.subTest(name=name), self.assertRaisesRegex(ConfigError, "camera.name"):
+                load_config(write_config(self.tmp, "a" * 64, camera={"name": name}))
 
     def test_crop_is_parsed(self) -> None:
         crop = {"x": 10, "y": 20, "width": 100, "height": 80}
