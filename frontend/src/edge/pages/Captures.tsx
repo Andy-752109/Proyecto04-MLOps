@@ -39,25 +39,60 @@ function newestFirst(items: EdgeCapture[]): EdgeCapture[] {
   );
 }
 
+const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+function formatTimestamp(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2}:\d{2}(?:\.\d+)?)(Z|[+-]\d{2}:\d{2})$/.exec(
+    value
+  );
+  if (!match) return value;
+
+  const [, year, month, day, time, zone] = match;
+  const monthName = MONTHS[Number(month) - 1];
+  if (!monthName) return value;
+  return `${Number(day)} ${monthName} ${year}, ${time} (UTC${zone === "Z" ? "+00:00" : zone})`;
+}
+
 function CaptureCard({ capture }: { capture: EdgeCapture }) {
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-surface">
-      <div className="aspect-video bg-sidebar">
+      <div className="relative aspect-video bg-sidebar">
         {imageFailed ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-5 text-center text-sm text-ink-muted">
             <p>No se pudo cargar la imagen; la URL puede haber expirado.</p>
             <p>Pulsa Actualizar para solicitar una URL nueva.</p>
           </div>
         ) : (
-          <img
-            src={capture.image_url}
-            alt={`Frame completo de la captura ${capture.capture_id}`}
-            className="h-full w-full object-contain"
-            referrerPolicy="no-referrer"
-            onError={() => setImageFailed(true)}
-          />
+          <>
+            <img
+              src={capture.image_url}
+              alt={`Frame completo de la captura ${capture.capture_id}`}
+              className="h-full w-full object-contain"
+              referrerPolicy="no-referrer"
+              onError={() => setImageFailed(true)}
+            />
+            {capture.crop !== null && (
+              <svg
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                viewBox={`0 0 ${capture.crop.frame_width} ${capture.crop.frame_height}`}
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <rect
+                  x={capture.crop.x}
+                  y={capture.crop.y}
+                  width={capture.crop.width}
+                  height={capture.crop.height}
+                  fill="rgba(167, 139, 250, 0.22)"
+                  stroke="#a78bfa"
+                  strokeWidth="2"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+            )}
+          </>
         )}
       </div>
       <div className="space-y-3 p-4">
@@ -73,11 +108,11 @@ function CaptureCard({ capture }: { capture: EdgeCapture }) {
         <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
           <dt className="text-ink-muted">Capturada</dt>
           <dd>
-            <time dateTime={capture.captured_at}>{capture.captured_at}</time>
+            <time dateTime={capture.captured_at}>{formatTimestamp(capture.captured_at)}</time>
           </dd>
           <dt className="text-ink-muted">Recibida</dt>
           <dd>
-            <time dateTime={capture.received_at}>{capture.received_at}</time>
+            <time dateTime={capture.received_at}>{formatTimestamp(capture.received_at)}</time>
           </dd>
           <dt className="text-ink-muted">capture_id</dt>
           <dd className="break-all font-mono text-xs">{capture.capture_id}</dd>

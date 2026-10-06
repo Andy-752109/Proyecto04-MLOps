@@ -139,7 +139,7 @@ describe("P4-08 Capturas Edge", () => {
     expect(screen.queryByText("schema_version")).not.toBeInTheDocument();
   });
 
-  it("muestra imagen, metadatos, zona horaria y recorte del contrato", async () => {
+  it("muestra imagen, metadatos, fechas con offset y el crop sobre el frame", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => response([cat, dog])));
     renderAt();
 
@@ -150,14 +150,45 @@ describe("P4-08 Capturas Edge", () => {
     expect(catCard).toHaveTextContent(cat.capture_id);
     expect(catCard).toHaveTextContent("cat");
     expect(catCard).toHaveTextContent(/93\s*%/);
-    expect(catCard).toHaveTextContent(cat.captured_at);
-    expect(catCard).toHaveTextContent(cat.received_at);
+    expect(catCard).toHaveTextContent("5 oct 2026, 12:34:56 (UTC-06:00)");
+    expect(catCard).toHaveTextContent("6 oct 2026, 17:17:04 (UTC+00:00)");
+    expect(within(catCard).getByText("5 oct 2026, 12:34:56 (UTC-06:00)")).toHaveAttribute(
+      "datetime",
+      cat.captured_at
+    );
+    expect(within(catCard).getByText("6 oct 2026, 17:17:04 (UTC+00:00)")).toHaveAttribute(
+      "datetime",
+      cat.received_at
+    );
     expect(catCard).toHaveTextContent(cat.device_id);
     expect(catCard).toHaveTextContent(cat.model_version);
     expect(catCard).toHaveTextContent("Sin recorte");
     expect(within(catCard).getByRole("img")).toHaveAttribute("src", cat.image_url);
+    expect(catCard.querySelector("svg")).toBeNull();
     expect(dogCard).toHaveTextContent("x=12, y=8, ancho=80, alto=60; frame=320×240");
+    const overlay = dogCard.querySelector("svg");
+    expect(overlay).toHaveAttribute("viewBox", "0 0 320 240");
+    expect(overlay).toHaveAttribute("preserveAspectRatio", "xMidYMid meet");
+    expect(overlay?.querySelector("rect")).toHaveAttribute("x", "12");
+    expect(overlay?.querySelector("rect")).toHaveAttribute("y", "8");
+    expect(overlay?.querySelector("rect")).toHaveAttribute("width", "80");
+    expect(overlay?.querySelector("rect")).toHaveAttribute("height", "60");
     expect(screen.getByText(`2 capturas válidas · bucket ${bucket}`)).toBeInTheDocument();
+  });
+
+  it("presenta offsets distintos sin convertir las horas al huso local", async () => {
+    const withPositiveOffset = {
+      ...dog,
+      captured_at: "2026-10-06T01:04:05.250+05:30",
+      received_at: "2026-10-05T11:34:56-07:00",
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => response([withPositiveOffset])));
+    renderAt();
+
+    const captured = await screen.findByText("6 oct 2026, 01:04:05.250 (UTC+05:30)");
+    const received = screen.getByText("5 oct 2026, 11:34:56 (UTC-07:00)");
+    expect(captured).toHaveAttribute("datetime", withPositiveOffset.captured_at);
+    expect(received).toHaveAttribute("datetime", withPositiveOffset.received_at);
   });
 
   it("ordena por instante con offsets y desempata por capture_id sin mutar los datos", async () => {
@@ -242,6 +273,17 @@ describe("P4-08 Capturas Edge", () => {
       expect(screen.getByRole("img", { name: `Frame completo de la captura ${cat.capture_id}` })).toHaveAttribute("src", refreshed.image_url);
     });
     expect(screen.queryByText("No se pudo cargar la imagen; la URL puede haber expirado.")).not.toBeInTheDocument();
+  });
+
+  it("oculta el overlay si falla la imagen del frame", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => response([dog])));
+    renderAt();
+
+    const image = await screen.findByRole("img", { name: `Frame completo de la captura ${dog.capture_id}` });
+    expect(image.closest("article")?.querySelector("svg")).not.toBeNull();
+    fireEvent.error(image);
+    expect(screen.getByText("No se pudo cargar la imagen; la URL puede haber expirado.")).toBeInTheDocument();
+    expect(screen.getByText(dog.capture_id).closest("article")?.querySelector("svg")).toBeNull();
   });
 
   it("valida el payload completo y rechaza metadatos inválidos", () => {
