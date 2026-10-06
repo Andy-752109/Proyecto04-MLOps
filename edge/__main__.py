@@ -2,6 +2,7 @@
 
 python -m edge run [--config edge/config.yaml] [--mode manual|interval] [--count N]
 python -m edge status [--config edge/config.yaml]
+python -m edge cameras
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import time
 from pathlib import Path
 
 from edge.backend import create_backend, sha256_file
-from edge.camera import Camera, CameraError
+from edge.camera import Camera, CameraError, list_camera_names
 from edge.config import ConfigError, EdgeConfig, load_config
 from edge.event_validator import EventValidationError
 from edge.pipeline import Capture, EdgeApp, ModelVerificationError, now_utc, read_log
@@ -32,6 +33,25 @@ def setup_logging(config: EdgeConfig) -> None:
     ):
         handler.setFormatter(fmt)
         log.addHandler(handler)
+
+
+def camera_label(config: EdgeConfig) -> str:
+    camera = config.camera
+    return camera.name if camera.name is not None else f"índice {camera.index}"
+
+
+def cameras() -> int:
+    try:
+        names = list_camera_names()
+    except CameraError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    if not names:
+        print("no se encontraron cámaras (la lista por nombre solo funciona en Windows)")
+        return 1
+    for index, name in enumerate(names):
+        print(f"{index}: {name}")
+    return 0
 
 
 def show(capture: Capture, number: int) -> None:
@@ -65,7 +85,7 @@ def capture_once(app: EdgeApp, camera: Camera, number: int) -> None:
 def run(config: EdgeConfig, mode: str, count: int | None) -> int:
     app = EdgeApp(config, create_backend(config.model.runtime, config.model.threads))
     app.start()
-    log.info("modo %s, dispositivo %s, cámara %d", mode, config.device_id, config.camera.index)
+    log.info("modo %s, dispositivo %s, cámara %s", mode, config.device_id, camera_label(config))
     with Camera(config.camera) as camera:
         number = 0
         try:
@@ -89,7 +109,7 @@ def status(config: EdgeConfig) -> int:
     model = config.model.path
     print(f"dispositivo : {config.device_id}")
     print(f"modo        : {config.mode} (intervalo {config.interval_seconds:g} s)")
-    print(f"cámara      : índice {config.camera.index}")
+    print(f"cámara      : {camera_label(config)}")
     print(f"recorte     : {config.crop}")
     print(f"modelo      : {model} ({config.model.version}, {config.model.runtime})")
     if model.is_file():
@@ -115,7 +135,11 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--mode", choices=("manual", "interval"))
     run_parser.add_argument("--count", type=int, help="termina tras N capturas")
     sub.add_parser("status", help="configuración, modelo y log local")
+    sub.add_parser("cameras", help="lista las cámaras con su índice actual (Windows)")
     args = parser.parse_args(argv)
+
+    if args.command == "cameras":
+        return cameras()
 
     try:
         config = load_config(args.config)
