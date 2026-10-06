@@ -13,7 +13,31 @@
     "bytes": 11431238,
     "format": "onnx",
     "precision": "int8",
-    "runtime": "onnxruntime-cpu"
+    "runtime": "onnxruntime-cpu",
+    "io": {
+      "inputs": [
+        {
+          "name": "input",
+          "shape": [
+            "batch",
+            3,
+            128,
+            128
+          ],
+          "type": "tensor(float)"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "logits",
+          "shape": [
+            "batch",
+            2
+          ],
+          "type": "tensor(float)"
+        }
+      ]
+    }
   },
   "technique": {
     "name": "static_quantization",
@@ -52,5 +76,5 @@
     "numpy": "2.5.3"
   },
   "command": "uv run --group ml python -m edge_model.convert",
-  "converted_at": "2026-10-06T17:13:16+00:00"
+  "converted_at": "2026-10-06T23:05:24+00:00"
 }

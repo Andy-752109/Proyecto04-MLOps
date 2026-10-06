@@ -155,6 +155,16 @@ def evaluate(
     }
 
 
+def describe_io(model: Path) -> dict:
+    """Nombres, formas y tipos de entrada/salida leídos del .onnx (`None` = dimensión dinámica)."""
+    session = ort.InferenceSession(str(model), providers=["CPUExecutionProvider"])
+
+    def describe(nodes) -> list[dict]:
+        return [{"name": n.name, "shape": list(n.shape), "type": n.type} for n in nodes]
+
+    return {"inputs": describe(session.get_inputs()), "outputs": describe(session.get_outputs())}
+
+
 def build_package(directory: Path, files: list[Path], out: Path) -> str:
     """tar.gz determinista (orden, mtime y dueño fijos): mismo contenido -> mismo SHA-256."""
     buf = io.BytesIO()
@@ -221,6 +231,7 @@ def run(
             "format": "onnx",
             "precision": "int8",
             "runtime": "onnxruntime-cpu",
+            "io": describe_io(int8),
         },
         "technique": {
             "name": "static_quantization",
