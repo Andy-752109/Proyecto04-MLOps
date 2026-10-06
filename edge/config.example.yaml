@@ -1,5 +1,31 @@
-# Plantilla local sin credenciales. No forma parte del evento ni se lee en este PR.
+# Plantilla sin secretos. Copia a edge/config.yaml (ignorado por git) y ajusta.
+# Las rutas relativas se resuelven contra la carpeta de este archivo.
 device_id: edge-demo-01
-model_version: optimized-v1
-model_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-runtime: local-runtime
+
+camera:
+  index: 0            # 0 = webcam integrada; una cámara USB suele ser 1
+  width: 640          # opcional: resolución pedida a la cámara
+  height: 480
+  warmup_frames: 5    # frames descartados al abrir y antes de cada captura (exposición)
+
+model:
+  path: models/model.onnx        # caché local; se carga sin red
+  version: generic-resnet18      # versión del artefacto (P4-04 la reemplaza)
+  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  runtime: onnxruntime
+  threads: null                  # null = lo que decida el runtime
+  image_size: 128
+  registry: null                 # opcional: ../models/edge_registry.json (P4-04)
+
+# null = sin recorte; si no, píxeles del frame original con origen arriba a la izquierda.
+crop: null
+# crop: {x: 80, y: 0, width: 480, height: 480}
+
+capture:
+  mode: manual          # manual (Enter) | interval
+  interval_seconds: 5
+
+data_dir: data          # captures.jsonl, images/ (frame completo) y crops/
+
+aws:
+  bucket: ""            # lo usa el uploader (P4-09); la captura nunca toca la red

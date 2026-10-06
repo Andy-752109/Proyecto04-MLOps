@@ -1,0 +1,3 @@
+# Solo para tests: el modelo ONNX diminuto se construye con `onnx`.
+-r requirements.txt
+onnx>=1.15,<2
