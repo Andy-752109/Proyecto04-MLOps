@@ -1,0 +1,47 @@
+2026-10-06 14:25:11,544 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-06 14:25:11,602 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-06 14:25:11,602 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 0 capturas previas
+2026-10-06 14:25:11,602 INFO modo manual, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-06 14:25:14,174 INFO captura 5ce6c2d4-be72-4e3a-a1b7-ab3d8b583110 dog 0.9887
+2026-10-06 14:25:42,674 INFO captura 237c84c7-c965-4b6c-ab76-cae05fb2af97 dog 0.9875
+2026-10-06 14:25:54,098 INFO captura affaf8cb-29e5-4766-942e-a69666cfe716 dog 0.9966
+2026-10-06 14:26:14,003 INFO captura ba3fae19-8c13-4a52-829a-21d6ec6a4c59 dog 0.9987
+2026-10-06 14:26:35,939 INFO captura 0b4f6fda-6946-49e1-b5a3-4f649fecc8e8 cat 0.9998
+2026-10-06 14:26:59,556 INFO captura 9d68e56d-508e-433a-bb2d-339d4a868000 cat 0.9902
+2026-10-06 14:27:18,549 INFO captura 3a1103e1-1c38-40a2-9723-d7d8856b41b7 cat 0.9213
+2026-10-06 14:27:23,789 INFO fin: 7 capturas en esta sesión
+2026-10-06 14:30:16,458 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-06 14:30:16,515 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-06 14:30:16,515 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 7 capturas previas
+2026-10-06 14:30:16,515 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-06 14:30:17,803 INFO captura a62ab6f6-f5d0-45d2-a48c-51a7f11bb39a dog 0.9553
+2026-10-06 14:30:27,886 INFO captura 6accee4f-8fc1-4337-901c-23c8d6776b6f dog 0.9531
+2026-10-06 14:30:37,953 INFO captura 85e39ea0-9ed7-4da4-a00f-8538e6a73ace dog 0.9840
+2026-10-06 14:30:47,995 INFO captura 63512bc8-b422-4d13-859d-471bc00cd77d dog 0.9795
+2026-10-06 14:30:58,062 INFO captura 0076c331-7315-4f6f-8243-49877aa6f47e dog 0.9831
+2026-10-06 14:31:08,146 INFO captura ec66f800-547a-4a6a-a7f4-fe350f8a6a4c dog 0.9855
+2026-10-06 14:31:18,229 INFO captura 1854b7a9-d926-4968-bcfd-3fa637a9b598 dog 0.9862
+2026-10-06 14:31:28,341 INFO captura 13849d35-185b-45b8-ae6e-41aa04572611 dog 0.9805
+2026-10-06 14:31:38,396 INFO captura faa11108-e33e-42c6-bda3-28adfc3d7279 dog 0.9823
+2026-10-06 14:31:48,471 INFO captura 1511c1f0-934c-478f-9fc1-d127024a4079 dog 0.9875
+2026-10-06 14:31:58,539 INFO captura 6f52eefe-246f-4606-ab42-1424896723ca dog 0.9762
+2026-10-06 14:32:08,605 INFO captura 10a9d178-fa03-4d36-9fe3-314fe347717b dog 0.9831
+2026-10-06 14:32:18,672 INFO captura aa44ebad-ff2d-4194-87d7-03649345c668 dog 0.9840
+2026-10-06 14:32:28,747 INFO captura 8d49f426-6257-4bc6-8a5b-aac237a0d9c3 dog 0.9862
+2026-10-06 14:32:38,822 INFO captura b9557e5d-6a71-4a6d-8743-7fc225c0a9d1 dog 0.9862
+2026-10-06 14:32:48,898 INFO captura 0d492bd9-3db3-40df-b520-5079f565419e dog 0.9840
+2026-10-06 14:32:58,986 INFO captura 93fe3baf-c064-4b6c-9c73-aef6763e7ffd cat 0.7604
+2026-10-06 14:33:09,057 INFO captura f2c6c0b1-639b-4f07-b992-6447cfad6298 cat 0.7694
+2026-10-06 14:33:19,148 INFO captura a8bc41af-86a3-4d9a-8a55-574b4ec30d26 cat 0.7950
+2026-10-06 14:33:29,215 INFO captura 0accc9eb-a2f5-4ddd-a818-ace05459c4de cat 0.8650
+2026-10-06 14:33:39,282 INFO captura 2050c362-3767-40c5-9d02-d75ea65fb298 cat 0.7318
+2026-10-06 14:33:49,324 INFO captura 8182c350-bc7c-4b51-aebb-8cff4e30498a cat 0.8109
+2026-10-06 14:33:59,408 INFO captura d84306cb-1e4b-42ce-80d9-6fafde884c57 cat 0.7950
+2026-10-06 14:34:09,491 INFO captura 6b1db12f-0de7-407b-9834-b9499d92f41e cat 0.8031
+2026-10-06 14:34:19,549 INFO captura c73d0f03-4ed4-41c1-aa4b-ec0db39f024f cat 0.7950
+2026-10-06 14:34:29,624 INFO captura 9b13c52c-0bf9-4cbc-8e32-7b79988c5078 cat 0.6798
+2026-10-06 14:34:39,700 INFO captura b2d89ac4-d2f8-45b0-857a-a731894d75f5 cat 0.8109
+2026-10-06 14:34:49,776 INFO captura caf80171-5c0c-41b6-aebb-b4392e639519 cat 0.7219
+2026-10-06 14:34:59,839 INFO captura b9a1378f-7c38-4983-abd4-ca2a338b579b cat 0.7782
+2026-10-06 14:35:09,918 INFO captura 425f5fa8-c194-43a5-a530-65d134802f88 cat 0.7867
+2026-10-06 14:35:10,170 INFO fin: 30 capturas en esta sesión
