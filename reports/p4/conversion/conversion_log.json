@@ -1,0 +1,56 @@
+{
+  "model_version": "1.0.0-int8",
+  "input": {
+    "source_version": "1.0.0",
+    "source_package_sha256": "bb93a41c8f83a2e42b5f3c337136804f9734687a8ba58360308945347cdfa270",
+    "source_package_version_id": "V8H6fouL5HiaUvrxAz1gUI5RbRD008VH",
+    "source_checkpoint_sha256": "f759cde23fc314b63c4a4e3c20127ef1eb84121e579b04e7c97911ada20ab7d9",
+    "intermediate_fp32_sha256": "9163ecec60337d2953920ee2831ce40478c10050746c573b363e906a897031be"
+  },
+  "output": {
+    "file": "model_int8.onnx",
+    "sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392",
+    "bytes": 11431238,
+    "format": "onnx",
+    "precision": "int8",
+    "runtime": "onnxruntime-cpu"
+  },
+  "technique": {
+    "name": "static_quantization",
+    "quant_format": "QDQ",
+    "per_channel": true,
+    "reduce_range": true,
+    "weight_type": "QInt8",
+    "activation_type": "QUInt8",
+    "calibrate_method": "MinMax",
+    "calibration_samples": 100,
+    "calibration_seed": 42,
+    "calibration_split": "train"
+  },
+  "calibration_ids_sha256": "e229786dcb911b651fd4a57ab64d0b4f516310deb999e1f15e68a0d8bcb0c4f3",
+  "quality": {
+    "val_rows": 131,
+    "accuracy_original": 0.9618320610687023,
+    "accuracy_int8": 0.9618320610687023,
+    "accuracy_drop_pp": 0.0,
+    "max_accuracy_drop_pp": 2.0,
+    "class_agreement_with_original": 1.0,
+    "max_abs_delta_prob_vs_fp32_onnx_val": 0.09160207211971283,
+    "parity_reference_rows": 20,
+    "parity_reference_class_mismatches": [],
+    "class_order": [
+      "cat",
+      "dog"
+    ],
+    "passed": true
+  },
+  "opset": 17,
+  "libraries": {
+    "torch": "2.14.0",
+    "onnx": "1.23.1",
+    "onnxruntime": "1.30.0",
+    "numpy": "2.5.3"
+  },
+  "command": "uv run --group ml python -m edge_model.convert",
+  "converted_at": "2026-10-06T17:13:16+00:00"
+}
