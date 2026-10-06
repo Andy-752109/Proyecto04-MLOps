@@ -15,7 +15,7 @@ Credenciales: solo la cadena por defecto de boto3 (perfil SSO o credenciales tem
 Prueba manual contra S3 (dos veces seguidas = un objeto de cada tipo):
 
     python -m edge.uploader --bucket mlops-p4-edge-captures-222629887955 \\
-        --profile mlops-p4 --event contracts/examples/valid-cat-no-crop.json \\
+        --profile mlops-p3 --event contracts/examples/valid-cat-no-crop.json \\
         --image contracts/examples/test-capture.jpg
 """
 
