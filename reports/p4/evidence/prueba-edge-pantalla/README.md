@@ -16,17 +16,23 @@ Imágenes de perros y gatos mostradas en una pantalla frente a la cámara.
 La corrida por intervalo duró 4 min 54 s (14:30:16 → 14:35:10 en `edge.log`).
 
 ## Limitaciones
-- Las 37 capturas son repeticiones de **8 imágenes distintas** (el intervalo mostró siempre la
-  misma: un pastor alemán ×16 y una gata blanca ×14). Valida el flujo completo, no mide accuracy.
-- Sin red: se probó con el WiFi apagado. El `ping -n 1 8.8.8.8` dio `Destination host unreachable`
+- Las 37 capturas son repeticiones de **8 imágenes distintas** (en el intervalo, un pastor alemán
+  ×16 y una gata blanca ×14). Valida el flujo completo, no mide accuracy.
+- Sin red: la corrida por intervalo (#8-37) se hizo con el WiFi apagado; el estado de red de la sesión manual no se registró. El `ping -n 1 8.8.8.8` dio `Destination host unreachable`
   desde la propia laptop; su `Received = 1 (0% loss)` es una cuenta engañosa de `ping` en Windows.
   El log no registra el estado de la red.
 - En una prueba previa con animales reales en casa y encuadre libre hubo errores (gatos clasificados
   como `dog`) y muchas fotos inválidas; no se conserva esa corrida.
 
 ## Origen de las imágenes
-Las 8 imágenes (4 de perros y 4 de gatos) se obtuvieron de **Google Imágenes**: se buscó "perro" y
-"gato" y se eligieron a mano. Se mostraron en la pantalla de un computador frente a la cámara USB.
+Las 8 imágenes distintas (4 de perros y 4 de gatos) se obtuvieron de **Google Imágenes**: se buscó
+"perro" y "gato" y se eligieron a mano. Se mostraron en la pantalla de un computador frente a la
+cámara USB.
+
+| Sesión | Capturas | Imágenes distintas |
+|---|---|---|
+| Manual (#1-7) | 4 de perro y 3 de gato | 3 perros (las capturas #1 y #2 son la misma imagen) y 3 gatos |
+| Intervalo, **sin internet** (#8-37) | 16 de perro (#8-23) y 14 de gato (#24-37) | 1 perro y 1 gato: cada uno se dejó fijo durante toda su parte |
 
 **No son del dataset del proyecto.** Se comparó cada imagen (vía las características del modelo de
 P3) con las 600 imágenes de `data/raw/images` (`cat.N.jpg`, `dog.N.jpg`) y no hay ninguna
