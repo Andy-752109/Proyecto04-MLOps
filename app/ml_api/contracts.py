@@ -14,14 +14,101 @@ real que consumir (un 200 con forma conocida) en vez de un 404 sin explicar
 por qué, mientras esas piezas no existen.
 """
 
+import re
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
 
 class ContractModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+
+class EdgeProbabilities(ContractModel):
+    cat: float = Field(ge=0, le=1)
+    dog: float = Field(ge=0, le=1)
+
+
+class EdgeCrop(ContractModel):
+    x: int = Field(ge=0)
+    y: int = Field(ge=0)
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+    frame_width: int = Field(gt=0)
+    frame_height: int = Field(gt=0)
+
+    @model_validator(mode="after")
+    def inside_frame(self) -> "EdgeCrop":
+        if self.x + self.width > self.frame_width or self.y + self.height > self.frame_height:
+            raise ValueError("crop fuera de las dimensiones del frame")
+        return self
+
+
+class EdgeEventV1(ContractModel):
+    """JSON persistido; los datos derivados de S3 no pertenecen a este modelo."""
+
+    schema_version: Literal["1"]
+    capture_id: str
+    captured_at: str
+    device_id: str = Field(min_length=1)
+    model_version: str = Field(min_length=1)
+    model_sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+    runtime: str = Field(min_length=1)
+    predicted_class: Literal["cat", "dog"]
+    confidence: float = Field(ge=0, le=1)
+    probabilities: EdgeProbabilities
+    crop: EdgeCrop | None
+    preprocess_ms: float = Field(ge=0)
+    inference_ms: float = Field(ge=0)
+    image_key: str
+
+    @field_validator("capture_id")
+    @classmethod
+    def canonical_uuid_v4(cls, value: str) -> str:
+        try:
+            parsed = UUID(value)
+        except ValueError as exc:
+            raise ValueError("capture_id debe ser UUID v4 canónico lowercase") from exc
+        if parsed.version != 4 or str(parsed) != value:
+            raise ValueError("capture_id debe ser UUID v4 canónico lowercase")
+        return value
+
+    @field_validator("captured_at")
+    @classmethod
+    def aware_iso_datetime(cls, value: str) -> str:
+        # ISO 8601 extendido con hora y zona; fromisoformat comprueba fecha/hora reales.
+        pattern = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})"
+        if not re.fullmatch(pattern, value):
+            raise ValueError("captured_at debe ser ISO 8601 con zona horaria")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("captured_at contiene fecha u hora inválida") from exc
+        if parsed.utcoffset() is None:
+            raise ValueError("captured_at debe incluir zona horaria")
+        return value
+
+    @model_validator(mode="after")
+    def image_matches_capture(self) -> "EdgeEventV1":
+        expected = f"edge-captures/v1/images/{self.capture_id}.jpg"
+        if self.image_key != expected:
+            raise ValueError("image_key debe apuntar al frame de capture_id")
+        return self
+
+
+class EdgeCaptureItem(EdgeEventV1):
+    """Evento validado enriquecido para HTTP, nunca persistido en S3."""
+
+    received_at: datetime
+    image_url: str
+
+
+class EdgeCaptureList(ContractModel):
+    items: list[EdgeCaptureItem]
+    total: int
+    bucket: str
 
 
 TrainingJobStatus = Literal["queued", "running", "completed", "failed", "cancelled"]

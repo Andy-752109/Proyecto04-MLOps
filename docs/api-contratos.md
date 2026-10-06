@@ -37,6 +37,7 @@ expone: es un servicio Python aparte, no una ruta más del backend existente.
 | `/ml-api/models/{version}` | GET | `ModelDetail` | Real (P3-15): tarjeta, procedencia y URL prefirmada |
 | `/ml-api/models/active` | POST | `SetActiveVersionRequest` → `ModelDetail` | Real (P3-15): rechaza marcar una versión sin objeto en S3 |
 | `/ml-api/inference` | GET | `PendingEndpoint` | Pendiente — P3-16 |
+| `/ml-api/edge/captures` | GET | `EdgeCaptureList` | P4-07: eventos edge v1 leídos de S3 |
 
 El progreso de una corrida (`status`/`progress`/`logs`/`heartbeat_at`) lo
 escribe `trainer-worker` directo en MariaDB, no a través de `ml-api` — no hay
@@ -222,7 +223,7 @@ registry **no** trae `manifest_id`, `run_kind`, `selected` ni la tarjeta:
 La **versión activa para inferencia** (P3-16) vive en
 `models/active_version.json` (`{"active_version": "1.0.0"}`), escrito
 atómicamente por `ml-api`. `ml-api` monta `./models` (lectura/escritura) y
-`~/.aws` (solo lectura) con `AWS_PROFILE=mlops-p3`; el `.gitignore` excluye
+`~/.aws` (con escritura para renovar la caché SSO) con `AWS_PROFILE=mlops-p3`; el `.gitignore` excluye
 `models/active_version.json*`.
 
 ### Nota de verificación (P3-16)
@@ -236,3 +237,54 @@ verifica cuando Inference consuma `active_version.json`.
 
 `active_version.json` vs una tabla en MariaDB: si P3-16 prefiere leerlo de la
 base (como `training_jobs`), se migra sin tocar el contrato HTTP.
+
+## Capturas edge (P4-07)
+
+`GET /ml-api/edge/captures?limit=50` lee todos los objetos bajo
+`edge-captures/v1/events/` del bucket indicado por `EDGE_CAPTURES_BUCKET` en
+`ml-api`. `limit` es opcional (default `50`), acepta enteros de `1` a `100` y
+se aplica después de ordenar por `captured_at` descendente. Un valor inválido,
+`?limit=` vacío o parámetros `limit` duplicados responden `400` con
+`{"error": "..."}`.
+
+La respuesta contiene `items`, `total` y `bucket`. `total` cuenta **todos los
+eventos válidos** encontrados antes de aplicar `limit`; puede ser mayor que
+`items.length`. Cada item incluye los campos del [evento edge v1](../contracts/edge-event.v1.schema.json)
+más `received_at` e `image_url`. `received_at` se deriva de `LastModified` del
+**objeto evento** listado en S3; no forma parte del JSON persistido.
+`image_url` es una URL prefirmada temporal de lectura para el frame completo
+indicado por `image_key`. No se comprueba cada imagen con `head_object`.
+
+Por ejemplo, con valores ficticios (la URL omite los parámetros de firma):
+
+```json
+{
+  "items": [
+    {
+      "schema_version": "1",
+      "capture_id": "8f9f60e4-6d7a-4d92-8cc0-45e0b192cd65",
+      "captured_at": "2026-10-05T12:34:56-06:00",
+      "device_id": "edge-demo-01",
+      "model_version": "optimized-v1",
+      "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "runtime": "local-runtime",
+      "predicted_class": "cat",
+      "confidence": 0.93,
+      "probabilities": {"cat": 0.93, "dog": 0.07},
+      "crop": null,
+      "preprocess_ms": 12.5,
+      "inference_ms": 38.2,
+      "image_key": "edge-captures/v1/images/8f9f60e4-6d7a-4d92-8cc0-45e0b192cd65.jpg",
+      "received_at": "2026-10-06T12:30:00Z",
+      "image_url": "https://example.invalid/temporary-image-url"
+    }
+  ],
+  "total": 1,
+  "bucket": "example-edge-bucket"
+}
+```
+
+Eventos con JSON corrupto o fuera del contrato se omiten y registran en log.
+Un evento que desaparece entre el listado y la lectura (`NoSuchKey`) también
+se omite. Fallos generales de S3/SSO, incluidos permisos y generación de la
+URL prefirmada, responden `503` con un mensaje que no expone credenciales.
