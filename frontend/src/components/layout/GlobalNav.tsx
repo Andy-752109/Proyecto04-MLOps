@@ -1,5 +1,6 @@
 import {
   Bot,
+  Camera,
   ChartScatter,
   Cpu,
   FlaskConical,
@@ -50,6 +51,8 @@ const MODEL_NAV_ITEMS: NavItem[] = [
   { label: "Models", to: "/models", icon: Package },
   { label: "Inference", to: "/inference", icon: Cpu },
 ];
+
+const EDGE_NAV_ITEMS: NavItem[] = [{ label: "Capturas Edge", to: "/edge/captures", icon: Camera }];
 
 function NavLinkList({ items }: { items: NavItem[] }) {
   return (
@@ -106,6 +109,8 @@ export function GlobalNav({ children }: { children?: ReactNode }) {
         <NavLinkList items={PIPELINE_NAV_ITEMS} />
         <div className="my-2 h-px w-full shrink-0 bg-border lg:my-2" aria-hidden />
         <NavLinkList items={MODEL_NAV_ITEMS} />
+        <div className="my-2 h-px w-full shrink-0 bg-border lg:my-2" aria-hidden />
+        <NavLinkList items={EDGE_NAV_ITEMS} />
       </nav>
 
       {children && <div className="border-t border-border px-5 py-5">{children}</div>}
