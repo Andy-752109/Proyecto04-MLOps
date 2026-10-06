@@ -1,0 +1,5 @@
+# Plantilla local sin credenciales. No forma parte del evento ni se lee en este PR.
+device_id: edge-demo-01
+model_version: optimized-v1
+model_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+runtime: local-runtime

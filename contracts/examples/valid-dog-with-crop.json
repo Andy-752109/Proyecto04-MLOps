@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "capture_id": "d16b8f30-a4c7-4eca-b32f-f8878a617ac4",
+  "captured_at": "2026-10-05T18:35:10Z",
+  "device_id": "edge-demo-01",
+  "model_version": "optimized-v1",
+  "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "runtime": "local-runtime",
+  "predicted_class": "dog",
+  "confidence": 0.82,
+  "probabilities": {
+    "cat": 0.18,
+    "dog": 0.82
+  },
+  "crop": {
+    "x": 12,
+    "y": 8,
+    "width": 80,
+    "height": 60,
+    "frame_width": 320,
+    "frame_height": 240
+  },
+  "preprocess_ms": 12.5,
+  "inference_ms": 38.2,
+  "image_key": "edge-captures/v1/images/d16b8f30-a4c7-4eca-b32f-f8878a617ac4.jpg"
+}
