@@ -24,6 +24,16 @@ La corrida por intervalo duró 4 min 54 s (14:30:16 → 14:35:10 en `edge.log`).
 - En una prueba previa con animales reales en casa y encuadre libre hubo errores (gatos clasificados
   como `dog`) y muchas fotos inválidas; no se conserva esa corrida.
 
+## Origen de las imágenes
+Las 8 imágenes (4 de perros y 4 de gatos) se obtuvieron de **Google Imágenes**: se buscó "perro" y
+"gato" y se eligieron a mano. Se mostraron en la pantalla de un computador frente a la cámara USB.
+
+**No son del dataset del proyecto.** Se comparó cada imagen (vía las características del modelo de
+P3) con las 600 imágenes de `data/raw/images` (`cat.N.jpg`, `dog.N.jpg`) y no hay ninguna
+coincidencia: las más parecidas son otros animales, con similitud de 0.73 a 0.89. Es una
+comprobación razonable, no absoluta, porque las capturas pasan por una pantalla y una cámara de baja
+resolución. Las imágenes originales no se incluyen en este repositorio (solo las capturas).
+
 ## Contenido
 | Archivo | Qué es |
 |---|---|
