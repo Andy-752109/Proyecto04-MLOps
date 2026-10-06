@@ -3,5 +3,5 @@ rfc3339-validator>=0.1.4,<1
 numpy>=1.24,<3
 pillow>=10,<13
 opencv-python-headless>=4.8,<6
-onnxruntime>=1.17,<2
+onnxruntime==1.30.0  # misma versión con la que #4 verificó la paridad del ONNX
 pyyaml>=6,<7

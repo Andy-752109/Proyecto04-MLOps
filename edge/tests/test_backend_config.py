@@ -1,5 +1,6 @@
 """Capa del modelo (ONNX Runtime) y lectura de config.yaml."""
 
+import json
 import shutil
 import tempfile
 import unittest
@@ -75,9 +76,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.crop, {"center_square": 0.8})
         self.assertEqual(config.mode, "manual")
         self.assertEqual(config.interval_seconds, 10)
-        self.assertEqual(
-            config.model.path, EXAMPLE_CONFIG.parent / "models" / "generic-resnet18.onnx"
-        )
+        self.assertEqual(config.model.path, EXAMPLE_CONFIG.parent / "models" / "model_fp32.onnx")
+        self.assertEqual(config.model.version, "1.0.0-fp32")
         self.assertEqual(config.data_dir, EXAMPLE_CONFIG.parent / "data")
 
     def test_relative_paths_resolve_against_config_folder(self) -> None:
@@ -110,6 +110,15 @@ class ConfigTests(unittest.TestCase):
         crop = {"x": 10, "y": 20, "width": 100, "height": 80}
         config = load_config(write_config(self.tmp, "a" * 64, crop=crop))
         self.assertEqual(config.crop, crop)
+
+    def test_example_sha_matches_conversion_report(self) -> None:
+        # El SHA de la config debe ser el del ONNX que #4 verificó (PR #17).
+        report = EXAMPLE_CONFIG.parents[1] / "reports" / "p4" / "conversion" / "parity_fp32.json"
+        expected = json.loads(report.read_text(encoding="utf-8"))
+        config = load_config(EXAMPLE_CONFIG)
+        self.assertEqual(config.model.sha256, expected["output_sha256"])
+        self.assertEqual(config.model.path.name, expected["output_file"])
+        self.assertTrue(expected["parity"]["passed"])
 
     def test_center_square_crop_is_parsed(self) -> None:
         config = load_config(write_config(self.tmp, "a" * 64, crop={"center_square": 0.8}))

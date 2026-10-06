@@ -10,9 +10,11 @@ camera:
   warmup_frames: 10   # cuadros descartados al abrir y antes de cada captura (autoexposición)
 
 model:
-  path: models/generic-resnet18.onnx   # caché local; se carga sin red
-  version: generic-resnet18            # provisional; la final será 1.0.0-int8 (#4)
-  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  # ONNX FP32 de #4 (PR #17): reports/p4/conversion/parity_fp32.json. No va en git:
+  # copia model_fp32.onnx a edge/models/. La versión final será 1.0.0-int8 (#4, parte 2).
+  path: models/model_fp32.onnx
+  version: 1.0.0-fp32
+  sha256: "9163ecec60337d2953920ee2831ce40478c10050746c573b363e906a897031be"
   runtime: onnxruntime
   threads: null                        # null = lo que decida el runtime
   image_size: 128

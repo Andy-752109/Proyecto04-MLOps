@@ -6,7 +6,8 @@ modelo local y guarda el resultado como evento del
 
 ## Instalación
 
-Desde la raíz del repositorio (Python 3.10 o superior; en la laptop edge, 3.12 de 64 bits):
+Desde la raíz del repositorio, con **Python 3.12 de 64 bits**, el de la laptop edge. `onnxruntime` va fijo
+en 1.30.0, la versión con la que #4 verificó la paridad, y no tiene wheel para Python 3.10:
 
 ```bash
 python -m pip install -r edge/requirements.txt       # app
@@ -16,17 +17,24 @@ python -m pip install -r edge/requirements-dev.txt   # app + tests
 ## Modelo
 
 La app solo carga el modelo desde la caché local (`edge/models/`, ignorada por git) y
-verifica su SHA-256 antes de arrancar; si no coincide, aborta. Mientras llega el ONNX de
-P4-04 se puede usar un ResNet18 genérico (arquitectura de P3, pesos aleatorios: sirve para
-probar el runtime y la latencia, no para clasificar):
+verifica su SHA-256 antes de arrancar; si no coincide, aborta.
+
+**Modelo real (por defecto):** el ONNX FP32 de #4 (`1.0.0-fp32`). Su SHA está en
+`reports/p4/conversion/parity_fp32.json` y ya va en `config.example.yaml`.
+
+```bash
+cp edge/config.example.yaml edge/config.yaml
+# copia model_fp32.onnx (te lo pasa Karen) a edge/models/
+python -m edge status          # debe decir "sha256      : OK"
+```
+
+**Modelo genérico (respaldo):** ResNet18 con arquitectura de P3 y pesos aleatorios. Sirve
+para probar runtime y latencia sin el archivo real, no para clasificar. Este comando genera
+`edge/models/generic-resnet18.onnx` y deja `edge/config.yaml` apuntando a él con su SHA:
 
 ```bash
 python -m edge.tools.generic_resnet18 --setup
 ```
-
-Genera `edge/models/generic-resnet18.onnx` y deja `edge/config.yaml` (copiado del ejemplo si
-no existe) con su ruta y su SHA-256. Cuando llegue el ONNX de #4 se cambian `model.path`,
-`model.version` y `model.sha256`.
 
 ## Configuración
 
