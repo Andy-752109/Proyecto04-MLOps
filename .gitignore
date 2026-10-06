@@ -32,6 +32,10 @@ models/active_version.json*
 *.pt
 *.pth
 *.ckpt
+*.onnx
+*.tflite
+*.engine
+edge/data/
 mlruns/
 mlflow-store/
 data/derived/
