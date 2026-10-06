@@ -254,7 +254,7 @@ services:
       # sección 9) y se usa el mismo perfil SSO que trainer-worker.
       MODELS_DIR: /app/models
       AWS_PROFILE: ${AWS_PROFILE:-mlops-p3}
-      EDGE_CAPTURES_BUCKET: ${EDGE_CAPTURES_BUCKET:-}
+      EDGE_CAPTURES_BUCKET: ${EDGE_CAPTURES_BUCKET:-mlops-p4-edge-captures-222629887955}
     volumes:
       # P3-09: `derived` solo lectura -- ml-api valida (manifest.csv), nunca
       # escribe el dataset derivado.

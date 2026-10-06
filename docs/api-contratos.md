@@ -242,7 +242,9 @@ base (como `training_jobs`), se migra sin tocar el contrato HTTP.
 
 `GET /ml-api/edge/captures?limit=50` lee todos los objetos bajo
 `edge-captures/v1/events/` del bucket indicado por `EDGE_CAPTURES_BUCKET` en
-`ml-api`. `limit` es opcional (default `50`), acepta enteros de `1` a `100` y
+`ml-api`. Docker Compose usa `mlops-p4-edge-captures-222629887955` por defecto;
+se puede sobrescribir con `EDGE_CAPTURES_BUCKET`. `limit` es opcional (default
+`50`), acepta enteros de `1` a `100` y
 se aplica después de ordenar por `captured_at` descendente. Un valor inválido,
 `?limit=` vacío o parámetros `limit` duplicados responden `400` con
 `{"error": "..."}`.
