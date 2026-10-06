@@ -6,7 +6,7 @@ modelo local y guarda el resultado como evento del
 
 ## Instalación
 
-Desde la raíz del repositorio (Python 3.10 o superior):
+Desde la raíz del repositorio (Python 3.10 o superior; en la laptop edge, 3.12 de 64 bits):
 
 ```bash
 python -m pip install -r edge/requirements.txt       # app
@@ -21,21 +21,29 @@ P4-04 se puede usar un ResNet18 genérico (arquitectura de P3, pesos aleatorios:
 probar el runtime y la latencia, no para clasificar):
 
 ```bash
-python -m edge.tools.generic_resnet18 edge/models/generic-resnet18.onnx
+python -m edge.tools.generic_resnet18 --setup
 ```
 
-El comando imprime el SHA-256 que va en `model.sha256` de la configuración.
+Genera `edge/models/generic-resnet18.onnx` y deja `edge/config.yaml` (copiado del ejemplo si
+no existe) con su ruta y su SHA-256. Cuando llegue el ONNX de #4 se cambian `model.path`,
+`model.version` y `model.sha256`.
 
 ## Configuración
 
-```bash
-cp edge/config.example.yaml edge/config.yaml   # ignorado por git; sin secretos
-```
+`edge/config.yaml` está ignorado por git y no lleva secretos. Valores por defecto
+(aprobados por el PM en #6):
 
-- `camera.index`: 0 suele ser la webcam integrada; una cámara USB, 1.
-- `crop`: `null` o `{x, y, width, height}` en píxeles del frame original.
-- `capture.mode`: `manual` (Enter captura, `q` sale) o `interval` (cada
-  `interval_seconds`; Ctrl+C sale).
+| Clave | Valor | Nota |
+|---|---|---|
+| `device_id` | `edge-laptop-01` | |
+| `camera.index` | `1` | Cámara USB de la laptop; la webcam integrada suele ser `0` |
+| `camera.api` | `auto` | DirectShow (`cv2.CAP_DSHOW`) en Windows |
+| `camera.width` / `height` | `null` | Resolución nativa de la cámara |
+| `camera.warmup_frames` | `10` | Se descartan al abrir y antes de cada captura (autoexposición) |
+| `crop` | `{center_square: 0.8}` | Cuadrado centrado, 80% del lado menor. También `null` o `{x, y, width, height}` en píxeles |
+| `capture.mode` | `manual` | `manual`: Enter captura, `q` sale. `interval`: cada `interval_seconds` (10), Ctrl+C sale |
+
+Si la cámara no abre, prueba otro `camera.index`.
 
 ## Uso
 

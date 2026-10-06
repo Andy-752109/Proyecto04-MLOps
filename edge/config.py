@@ -26,7 +26,8 @@ class CameraConfig:
     index: int = 0
     width: int | None = None
     height: int | None = None
-    warmup_frames: int = 5
+    warmup_frames: int = 10
+    api: str = "auto"  # auto = DirectShow en Windows, el de OpenCV en otro SO
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,7 @@ class EdgeConfig:
     device_id: str
     camera: CameraConfig
     model: ModelConfig
-    crop: dict[str, int] | None
+    crop: dict[str, Any] | None
     mode: str
     interval_seconds: float
     data_dir: Path
@@ -69,11 +70,19 @@ def _resolve(base: Path, value: str | None) -> Path | None:
     return path if path.is_absolute() else (base / path).resolve()
 
 
-def _parse_crop(raw: Any) -> dict[str, int] | None:
+def _parse_crop(raw: Any) -> dict[str, Any] | None:
+    """null, {center_square: fracción} o {x, y, width, height} en píxeles."""
     if raw is None:
         return None
     if not isinstance(raw, dict):
-        raise ConfigError("crop debe ser null o {x, y, width, height}")
+        raise ConfigError("crop debe ser null, {center_square} o {x, y, width, height}")
+    if set(raw) == {"center_square"}:
+        fraction = raw["center_square"]
+        if isinstance(fraction, bool) or not isinstance(fraction, (int, float)):
+            raise ConfigError("crop.center_square debe ser un número")
+        if not 0 < fraction <= 1:
+            raise ConfigError("crop.center_square debe estar en (0, 1]")
+        return {"center_square": float(fraction)}
     keys = ("x", "y", "width", "height")
     if set(raw) != set(keys):
         raise ConfigError(f"crop debe tener exactamente {keys}, tiene {sorted(raw)}")
@@ -106,12 +115,14 @@ def load_config(path: Path) -> EdgeConfig:
     )
 
     camera = CameraConfig(**(raw.get("camera") or {}))
+    if camera.api not in ("auto", "dshow", "msmf", "v4l2", "any"):
+        raise ConfigError("camera.api debe ser auto, dshow, msmf, v4l2 o any")
 
     capture = raw.get("capture") or {}
     mode = capture.get("mode", "manual")
     if mode not in MODES:
         raise ConfigError(f"capture.mode debe ser uno de {MODES}, es {mode!r}")
-    interval = float(capture.get("interval_seconds", 5))
+    interval = float(capture.get("interval_seconds", 10))
     if interval <= 0:
         raise ConfigError("capture.interval_seconds debe ser > 0")
 

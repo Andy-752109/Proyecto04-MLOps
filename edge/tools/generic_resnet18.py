@@ -7,12 +7,16 @@ plegada en las convoluciones, como queda tras exportar un modelo en `eval()`.
 Cabeza de P3: Linear(512, 256) -> ReLU -> Linear(256, 2) (el Dropout no existe en
 inferencia). Entrada [1, 3, 128, 128], salida [1, 2] logits.
 
-    python -m edge.tools.generic_resnet18 edge/models/generic-resnet18.onnx
+    python -m edge.tools.generic_resnet18 --setup    # modelo + edge/config.yaml
+    python -m edge.tools.generic_resnet18 ruta/salida.onnx
 """
 
 from __future__ import annotations
 
 import argparse
+import os
+import re
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -93,21 +97,55 @@ def build(image_size: int = 128, seed: int = 0):
     return model
 
 
+EDGE_DIR = Path(__file__).resolve().parents[1]
+SETUP_MODEL = EDGE_DIR / "models" / "generic-resnet18.onnx"
+SETUP_CONFIG = EDGE_DIR / "config.yaml"
+
+
+def write_config(config: Path, model: Path, sha256: str) -> None:
+    """Crea `config.yaml` desde el ejemplo (si no existe) y fija model.path/version/sha256."""
+    if not config.exists():
+        shutil.copyfile(EDGE_DIR / "config.example.yaml", config)
+    text = config.read_text(encoding="utf-8")
+    model_path = os.path.relpath(model, config.parent).replace(os.sep, "/")
+    replacements = {
+        r"^(  path: )\S+": rf"\g<1>{model_path}",
+        r"^(  version: )\S+": r"\g<1>generic-resnet18",
+        r'^(  sha256: )"?[0-9a-fA-F]*"?': rf'\g<1>"{sha256}"',
+    }
+    for pattern, value in replacements.items():
+        text, count = re.subn(pattern, value, text, count=1, flags=re.MULTILINE)
+        if count != 1:
+            raise SystemExit(f"no encontré {pattern!r} en {config}")
+    config.write_text(text, encoding="utf-8")
+
+
 def main() -> None:
     import onnx
 
+    from edge.backend import sha256_file
+
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("output", type=Path)
+    parser.add_argument("output", type=Path, nargs="?", help="ruta del .onnx a generar")
+    parser.add_argument(
+        "--setup",
+        action="store_true",
+        help=f"genera {SETUP_MODEL.relative_to(EDGE_DIR.parent)} y lo pone en edge/config.yaml",
+    )
     parser.add_argument("--image-size", type=int, default=128)
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    onnx.save(build(args.image_size, args.seed), args.output)
+    output = SETUP_MODEL if args.setup else args.output
+    if output is None:
+        parser.error("indica la ruta de salida o usa --setup")
 
-    from edge.backend import sha256_file
-
-    size_mb = args.output.stat().st_size / 1e6
-    print(f"{args.output} ({size_mb:.1f} MB) sha256={sha256_file(args.output)}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    onnx.save(build(args.image_size, args.seed), output)
+    sha256 = sha256_file(output)
+    print(f"{output} ({output.stat().st_size / 1e6:.1f} MB) sha256={sha256}")
+    if args.setup:
+        write_config(SETUP_CONFIG, output, sha256)
+        print(f"{SETUP_CONFIG} listo con ese modelo y su sha256")
 
 
 if __name__ == "__main__":

@@ -67,9 +67,17 @@ class ConfigTests(unittest.TestCase):
 
     def test_example_config_loads(self) -> None:
         config = load_config(EXAMPLE_CONFIG)
+        # Valores aprobados por el PM en #6.
+        self.assertEqual(config.device_id, "edge-laptop-01")
+        self.assertEqual(config.camera.index, 1)
+        self.assertEqual(config.camera.api, "auto")
+        self.assertIsNone(config.camera.width)
+        self.assertEqual(config.crop, {"center_square": 0.8})
         self.assertEqual(config.mode, "manual")
-        self.assertIsNone(config.crop)
-        self.assertEqual(config.model.path, EXAMPLE_CONFIG.parent / "models" / "model.onnx")
+        self.assertEqual(config.interval_seconds, 10)
+        self.assertEqual(
+            config.model.path, EXAMPLE_CONFIG.parent / "models" / "generic-resnet18.onnx"
+        )
         self.assertEqual(config.data_dir, EXAMPLE_CONFIG.parent / "data")
 
     def test_relative_paths_resolve_against_config_folder(self) -> None:
@@ -89,6 +97,10 @@ class ConfigTests(unittest.TestCase):
             "crop float": {"crop": {"x": 0.5, "y": 0, "width": 10, "height": 10}},
             "crop zero": {"crop": {"x": 0, "y": 0, "width": 0, "height": 10}},
             "interval": {"capture": {"mode": "interval", "interval_seconds": 0}},
+            "center zero": {"crop": {"center_square": 0}},
+            "center big": {"crop": {"center_square": 1.2}},
+            "center mixed": {"crop": {"center_square": 0.8, "x": 0}},
+            "camera api": {"camera": {"index": 0, "api": "gstreamer"}},
         }
         for name, override in cases.items():
             with self.subTest(case=name), self.assertRaises(ConfigError):
@@ -98,6 +110,24 @@ class ConfigTests(unittest.TestCase):
         crop = {"x": 10, "y": 20, "width": 100, "height": 80}
         config = load_config(write_config(self.tmp, "a" * 64, crop=crop))
         self.assertEqual(config.crop, crop)
+
+    def test_center_square_crop_is_parsed(self) -> None:
+        config = load_config(write_config(self.tmp, "a" * 64, crop={"center_square": 0.8}))
+        self.assertEqual(config.crop, {"center_square": 0.8})
+
+    def test_setup_writes_model_and_sha_into_config(self) -> None:
+        from edge.tools.generic_resnet18 import write_config as setup_config
+
+        config_path = self.tmp / "config.yaml"
+        model = self.tmp / "models" / "generic-resnet18.onnx"
+        setup_config(config_path, model, "b" * 64)
+        config = load_config(config_path)
+        self.assertEqual(config.model.path, model.resolve())
+        self.assertEqual(config.model.sha256, "b" * 64)
+        self.assertEqual(config.model.version, "generic-resnet18")
+        self.assertEqual(config.crop, {"center_square": 0.8})  # el resto viene del ejemplo
+        setup_config(config_path, model, "c" * 64)  # repetirlo solo cambia el sha
+        self.assertEqual(load_config(config_path).model.sha256, "c" * 64)
 
     def test_example_has_no_secrets(self) -> None:
         raw = yaml.safe_load(EXAMPLE_CONFIG.read_text(encoding="utf-8"))

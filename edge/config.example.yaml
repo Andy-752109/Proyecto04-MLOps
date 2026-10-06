@@ -1,31 +1,34 @@
-# Plantilla sin secretos. Copia a edge/config.yaml (ignorado por git) y ajusta.
-# Las rutas relativas se resuelven contra la carpeta de este archivo.
-device_id: edge-demo-01
+# Plantilla sin secretos con los valores aprobados por el PM (#6). Copia a edge/config.yaml
+# (ignorado por git) y ajusta. Las rutas relativas se resuelven contra la carpeta de este archivo.
+device_id: edge-laptop-01
 
 camera:
-  index: 0            # 0 = webcam integrada; una cámara USB suele ser 1
-  width: 640          # opcional: resolución pedida a la cámara
-  height: 480
-  warmup_frames: 5    # frames descartados al abrir y antes de cada captura (exposición)
+  index: 1            # laptop edge: la cámara USB suele ser 1; la webcam integrada, 0
+  api: auto           # auto = DirectShow (cv2.CAP_DSHOW) en Windows
+  width: null         # null = resolución nativa de la cámara (probablemente 640x480)
+  height: null
+  warmup_frames: 10   # cuadros descartados al abrir y antes de cada captura (autoexposición)
 
 model:
-  path: models/model.onnx        # caché local; se carga sin red
-  version: generic-resnet18      # versión del artefacto (P4-04 la reemplaza)
+  path: models/generic-resnet18.onnx   # caché local; se carga sin red
+  version: generic-resnet18            # provisional; la final será 1.0.0-int8 (#4)
   sha256: "0000000000000000000000000000000000000000000000000000000000000000"
   runtime: onnxruntime
-  threads: null                  # null = lo que decida el runtime
+  threads: null                        # null = lo que decida el runtime
   image_size: 128
-  registry: null                 # opcional: ../models/edge_registry.json (P4-04)
+  registry: null                       # opcional: ../models/edge_registry.json (#4)
 
-# null = sin recorte; si no, píxeles del frame original con origen arriba a la izquierda.
-crop: null
-# crop: {x: 80, y: 0, width: 480, height: 480}
+# Cuadrado centrado con lado = 80% del lado menor del frame. Alternativas:
+#   crop: null                                     (sin recorte)
+#   crop: {x: 80, y: 0, width: 480, height: 480}   (píxeles fijos del frame)
+crop:
+  center_square: 0.8
 
 capture:
   mode: manual          # manual (Enter) | interval
-  interval_seconds: 5
+  interval_seconds: 10
 
-data_dir: data          # captures.jsonl, images/ (frame completo) y crops/
+data_dir: data          # captures.jsonl, images/ (frame completo), crops/ y edge.log
 
 aws:
   bucket: ""            # lo usa el uploader (P4-09); la captura nunca toca la red

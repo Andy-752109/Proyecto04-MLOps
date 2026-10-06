@@ -26,7 +26,7 @@ from PIL import Image
 from edge.backend import CLASSES, InferenceBackend, sha256_file
 from edge.config import EdgeConfig
 from edge.event_validator import IMAGE_PREFIX, IMAGE_SUFFIX, validate_event
-from edge.preprocess import bgr_to_rgb, crop_frame, preprocess
+from edge.preprocess import bgr_to_rgb, crop_frame, preprocess, resolve_crop
 
 log = logging.getLogger("edge")
 
@@ -122,8 +122,10 @@ class EdgeApp:
         rgb = bgr_to_rgb(frame_bgr)
         frame_height, frame_width = rgb.shape[:2]
 
+        crop_px = resolve_crop(self.config.crop, frame_width, frame_height)
+
         started = time.perf_counter()
-        region = crop_frame(rgb, self.config.crop)
+        region = crop_frame(rgb, crop_px)
         tensor = preprocess(region, self.config.model.image_size)
         preprocessed = time.perf_counter()
         probs = self.backend.predict(tensor)
@@ -132,8 +134,8 @@ class EdgeApp:
         probabilities = {name: float(p) for name, p in zip(CLASSES, probs, strict=True)}
         predicted = CLASSES[int(np.argmax(probs))]
         crop = None
-        if self.config.crop is not None:
-            crop = {**self.config.crop, "frame_width": frame_width, "frame_height": frame_height}
+        if crop_px is not None:
+            crop = {**crop_px, "frame_width": frame_width, "frame_height": frame_height}
         event = {
             "schema_version": "1",
             "capture_id": capture_id,

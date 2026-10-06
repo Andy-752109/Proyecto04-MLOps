@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import sys
+from typing import Any
+
 import numpy as np
 
 from edge.config import CameraConfig
@@ -11,15 +14,29 @@ class CameraError(RuntimeError):
     """No se pudo abrir o leer la cámara."""
 
 
+def _api_preference(cv2: Any, api: str) -> int:
+    if api == "auto":
+        api = "dshow" if sys.platform == "win32" else "any"
+    return {
+        "dshow": cv2.CAP_DSHOW,
+        "msmf": cv2.CAP_MSMF,
+        "v4l2": cv2.CAP_V4L2,
+        "any": cv2.CAP_ANY,
+    }[api]
+
+
 class Camera:
     def __init__(self, config: CameraConfig) -> None:
         import cv2
 
         self._cv2 = cv2
         self._config = config
-        self._capture = cv2.VideoCapture(config.index)
+        self._capture = cv2.VideoCapture(config.index, _api_preference(cv2, config.api))
         if not self._capture.isOpened():
-            raise CameraError(f"no se pudo abrir la cámara {config.index}")
+            raise CameraError(
+                f"no se pudo abrir la cámara {config.index} (api {config.api});"
+                " prueba otro camera.index"
+            )
         if config.width:
             self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, config.width)
         if config.height:

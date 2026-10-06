@@ -8,7 +8,14 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from edge.preprocess import IMAGENET_MEAN, IMAGENET_STD, bgr_to_rgb, crop_frame, preprocess
+from edge.preprocess import (
+    IMAGENET_MEAN,
+    IMAGENET_STD,
+    bgr_to_rgb,
+    crop_frame,
+    preprocess,
+    resolve_crop,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 PARITY_CSV = ROOT / "reports" / "p4" / "reference" / "parity_reference.csv"
@@ -72,6 +79,36 @@ class PreprocessTests(unittest.TestCase):
         ):
             with self.subTest(crop=bad), self.assertRaises(ValueError):
                 crop_frame(frame, bad)
+
+    def test_center_square_80_percent(self) -> None:
+        self.assertEqual(
+            resolve_crop({"center_square": 0.8}, 640, 480),
+            {"x": 128, "y": 48, "width": 384, "height": 384},
+        )
+        self.assertEqual(
+            resolve_crop({"center_square": 0.8}, 480, 640),  # vertical
+            {"x": 48, "y": 128, "width": 384, "height": 384},
+        )
+        self.assertEqual(
+            resolve_crop({"center_square": 1.0}, 640, 480),
+            {"x": 80, "y": 0, "width": 480, "height": 480},
+        )
+
+    def test_center_square_always_fits(self) -> None:
+        for width, height in ((640, 480), (1280, 720), (1920, 1080), (321, 241), (7, 5)):
+            for fraction in (0.1, 0.5, 0.8, 1.0):
+                with self.subTest(size=(width, height), fraction=fraction):
+                    crop = resolve_crop({"center_square": fraction}, width, height)
+                    self.assertEqual(crop["width"], crop["height"])
+                    self.assertLessEqual(crop["x"] + crop["width"], width)
+                    self.assertLessEqual(crop["y"] + crop["height"], height)
+                    frame = np.zeros((height, width, 3), dtype=np.uint8)
+                    self.assertEqual(crop_frame(frame, crop).shape[:2], (crop["height"],) * 2)
+
+    def test_resolve_crop_passes_pixels_and_none(self) -> None:
+        pixels = {"x": 1, "y": 2, "width": 3, "height": 4}
+        self.assertEqual(resolve_crop(pixels, 640, 480), pixels)
+        self.assertIsNone(resolve_crop(None, 640, 480))
 
 
 @unittest.skipUnless(

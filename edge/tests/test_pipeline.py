@@ -83,6 +83,22 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(image_size(capture.crop_path), (200, 160))
         self.assertEqual(image_size(capture.image_path), (320, 240))  # frame completo
 
+    def test_center_square_crop_in_event(self) -> None:
+        capture = self.app(crop={"center_square": 0.8}).process(solid_frame_bgr(RED), CAPTURED_AT)
+        self.assertEqual(
+            capture.event["crop"],
+            {
+                "x": 64,
+                "y": 24,
+                "width": 192,
+                "height": 192,
+                "frame_width": 320,
+                "frame_height": 240,
+            },
+        )
+        self.assertEqual(image_size(capture.crop_path), (192, 192))
+        validate_event(capture.event)
+
     def test_crop_outside_frame_is_rejected(self) -> None:
         app = self.app(crop={"x": 300, "y": 0, "width": 100, "height": 100})
         with self.assertRaises(ValueError):

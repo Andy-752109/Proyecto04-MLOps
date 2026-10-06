@@ -9,6 +9,7 @@ BILINEAR)`, así que aquí se usa Pillow para ese paso y numpy para lo demás.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -23,6 +24,27 @@ def bgr_to_rgb(frame_bgr: np.ndarray) -> np.ndarray:
     if frame_bgr.ndim != 3 or frame_bgr.shape[2] != 3:
         raise ValueError(f"se esperaba un frame HxWx3, llegó {frame_bgr.shape}")
     return np.ascontiguousarray(frame_bgr[:, :, ::-1])
+
+
+def resolve_crop(
+    spec: Mapping[str, Any] | None, frame_width: int, frame_height: int
+) -> dict[str, int] | None:
+    """Convierte la config de recorte en píxeles del frame.
+
+    `{center_square: f}` es un cuadrado centrado con lado = f x el lado menor del frame;
+    `{x, y, width, height}` se usa tal cual.
+    """
+    if spec is None:
+        return None
+    if "center_square" in spec:
+        side = max(1, round(min(frame_width, frame_height) * spec["center_square"]))
+        return {
+            "x": (frame_width - side) // 2,
+            "y": (frame_height - side) // 2,
+            "width": side,
+            "height": side,
+        }
+    return {k: int(spec[k]) for k in ("x", "y", "width", "height")}
 
 
 def crop_frame(frame: np.ndarray, crop: Mapping[str, int] | None) -> np.ndarray:
