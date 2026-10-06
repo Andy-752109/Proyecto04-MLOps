@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.org/contracts/edge-event.v1.schema.json",
   "title": "Edge capture event v1",
   "type": "object",
   "additionalProperties": false,
@@ -25,7 +24,7 @@
     "capture_id": {
       "type": "string",
       "format": "uuid",
-      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
     },
     "captured_at": { "type": "string", "format": "date-time" },
     "device_id": { "type": "string", "minLength": 1 },
@@ -60,7 +59,7 @@
     "inference_ms": { "type": "number", "minimum": 0 },
     "image_key": {
       "type": "string",
-      "pattern": "^edge-captures/v1/images/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\\.jpg$"
+      "pattern": "^edge-captures/v1/images/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.jpg$"
     }
   }
 }
