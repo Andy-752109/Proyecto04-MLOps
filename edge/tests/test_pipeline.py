@@ -203,6 +203,35 @@ class CliTests(unittest.TestCase):
         self.assertIn("sha256      : OK", out)
         self.assertIn("capturas    : 1", out)
 
+    def test_status_shows_the_camera_name_when_configured(self) -> None:
+        self.config = write_config(
+            self.tmp,
+            write_tiny_model(self.tmp / "models" / "model.onnx"),
+            camera={"name": "GENERAL WEBCAM"},
+        )
+        _, out = self.run_cli("status")
+        self.assertIn("cámara      : GENERAL WEBCAM", out)
+
+    def test_cameras_command_lists_devices_with_their_index(self) -> None:
+        names = ["USB2.0 UVC HD Webcam", "GENERAL WEBCAM"]
+        with mock.patch("edge.__main__.list_camera_names", return_value=names):
+            code, out = self.run_cli("cameras")
+        self.assertEqual(code, 0)
+        self.assertIn("0: USB2.0 UVC HD Webcam", out)
+        self.assertIn("1: GENERAL WEBCAM", out)
+
+    def test_cameras_command_without_devices_exits_with_error(self) -> None:
+        with mock.patch("edge.__main__.list_camera_names", return_value=[]):
+            code, out = self.run_cli("cameras")
+        self.assertEqual(code, 1)
+        self.assertIn("no se encontraron cámaras", out)
+
+    def test_cameras_command_does_not_need_a_valid_config(self) -> None:
+        self.config = self.tmp / "missing.yaml"
+        with mock.patch("edge.__main__.list_camera_names", return_value=["GENERAL WEBCAM"]):
+            code, _ = self.run_cli("cameras")
+        self.assertEqual(code, 0)
+
     def test_bad_sha_exits_with_error(self) -> None:
         self.config = write_config(self.tmp, "0" * 64)
         code, _ = self.run_cli("run", "--count", "1")
