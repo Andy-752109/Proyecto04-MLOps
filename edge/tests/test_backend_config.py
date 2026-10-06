@@ -71,6 +71,7 @@ class ConfigTests(unittest.TestCase):
         # Valores aprobados por el PM en #6.
         self.assertEqual(config.device_id, "edge-laptop-01")
         self.assertEqual(config.camera.index, 1)
+        self.assertEqual(config.camera.name, "GENERAL WEBCAM")  # el orden de índices cambia
         self.assertEqual(config.camera.api, "auto")
         self.assertIsNone(config.camera.width)
         self.assertEqual(config.crop, {"center_square": 0.8})
