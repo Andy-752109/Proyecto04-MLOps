@@ -20,13 +20,16 @@ corregir.
 
 ## Ramas
 
-`p2-NN-descripcion` o `p3-NN-descripcion` según de qué fase sea el ticket, todo en
-minúsculas y con guiones. Las dos conviven a la vez: `main` puede tener trabajo pendiente
-de P2 y de P3 al mismo tiempo.
+`p2-NN-descripcion`, `p3-NN-descripcion` o `p4-NN-descripcion` según de qué fase
+sea el ticket, todo en minúsculas y con guiones. Las tres conviven a la vez.
+Para P4, por ejemplo, usa `p4-02-descripcion`.
+
+La rama `chore/convencion-p4` es una excepción intencional para el PR que habilita
+esta convención en el CI actual.
 
 | Caso | Ejemplo |
 |---|---|
-| Un ticket | `p2-52-copilot-llm-client`, `p3-03-infra-contratos` |
+| Un ticket | `p2-52-copilot-llm-client`, `p3-03-infra-contratos`, `p4-02-descripcion` |
 | Varios tickets | `p2-22-23-24-quality-gate-e2e`, `p2-26-p2-27-anotacion-lotes-7-8`, `p3-03-p3-05-algo` |
 | Sin ticket | `fix/annotation-id-collisions`, `chore/gitignore-node-modules` |
 
@@ -55,8 +58,10 @@ del PR (siguiente sección).
 
 ## Pull requests
 
+- Para P4, usa el título `P4-NN: descripción`.
 - **Título** con el mismo formato que un commit: `P2-52: Copilot con cliente LLM`,
-  `P3-03: Infraestructura y contratos`, `P2-22/23/24: compuerta de calidad`,
+  `P3-03: Infraestructura y contratos`, `P4-02: descripción`,
+  `P2-22/23/24: compuerta de calidad`,
   `P2-26 P2-27: lotes 7 y 8` o `fix: main tiene un test roto`. Ojo con `P2-52 - texto`,
   `P2 52 texto` o `P2-52 texto`: no cumplen.
 - **Descripción:** completa la plantilla. Di qué probaste **y qué no pudiste probar**.
