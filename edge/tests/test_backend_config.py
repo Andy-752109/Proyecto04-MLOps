@@ -106,6 +106,21 @@ class ConfigTests(unittest.TestCase):
             with self.subTest(case=name), self.assertRaises(ConfigError):
                 load_config(write_config(self.tmp, "a" * 64, **override))
 
+    def test_camera_name_is_parsed(self) -> None:
+        config = load_config(
+            write_config(self.tmp, "a" * 64, camera={"name": "GENERAL WEBCAM", "index": 0})
+        )
+        self.assertEqual(config.camera.name, "GENERAL WEBCAM")
+
+    def test_camera_name_defaults_to_none(self) -> None:
+        config = load_config(write_config(self.tmp, "a" * 64, camera={"index": 1}))
+        self.assertIsNone(config.camera.name)
+
+    def test_blank_camera_name_is_invalid(self) -> None:
+        for name in ("", "   "):
+            with self.subTest(name=name), self.assertRaisesRegex(ConfigError, "camera.name"):
+                load_config(write_config(self.tmp, "a" * 64, camera={"name": name}))
+
     def test_crop_is_parsed(self) -> None:
         crop = {"x": 10, "y": 20, "width": 100, "height": 80}
         config = load_config(write_config(self.tmp, "a" * 64, crop=crop))
