@@ -23,7 +23,7 @@ de la laptop se confirmaron en la primera prueba, el martes 6.
 | RAM | 8 GB |
 | SO | Windows 10 Home Single Language 64-bit (build 19045) |
 | Python / Git / AWS CLI | 3.12.10 (64-bit) / 2.55.0 / v2.37.9 |
-| Cámara | GENERAL WEBCAM USB (UVC, VID 0x1B3F / PID 0x2002). Índice `1` en OpenCV con `CAP_DSHOW`, 640×360; el índice `0` es la webcam integrada |
+| Cámara | `GENERAL WEBCAM` USB (UVC, VID 0x1B3F / PID 0x2002), 640×360 con `CAP_DSHOW`. La webcam integrada es `USB2.0 UVC HD Webcam` (VID 0x13D3), 640×480. **El índice de OpenCV no es estable** (la USB fue `1` y luego `0`): se elige por nombre |
 | Cortar la red | Apagar el WiFi desde Windows |
 
 Como la CPU tiene AVX2 sin VNNI, la cuantización usa `reduce_range=True` para evitar la saturación de
@@ -42,7 +42,7 @@ la instrucción U8S8; la ganancia de latencia es moderada y la de tamaño (~4×)
 
 ## 4. Notas para la app edge (P4-06)
 
-- Índice de cámara `1` por defecto (configurable). Resolución nativa de la cámara.
+- Elegir la cámara por nombre (`camera.name: GENERAL WEBCAM`, ver P4-06), no por índice. `python -m edge cameras` lista los dispositivos. Resolución nativa de la cámara.
 - Descartar los primeros 5–10 cuadros (autoexposición).
 - Recorte: cuadrado centrado del 80 % del lado menor del frame (configurable).
 - Modos: manual (Enter) para pruebas; intervalo de 10 s para la corrida de 5 minutos.
