@@ -39,6 +39,9 @@ ml = [
     "scikit-learn==1.9.1",
     "pillow==10.4.0",
     "pandas>=3.0.6",
+    "onnx==1.23.1",
+    "onnxruntime==1.30.0",
+    "onnxscript==0.7.2",
 ]
 
 [tool.ruff]

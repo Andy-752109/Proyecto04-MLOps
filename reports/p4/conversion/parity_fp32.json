@@ -1,0 +1,35 @@
+{
+  "source_version": "1.0.0",
+  "source_checkpoint_sha256": "f759cde23fc314b63c4a4e3c20127ef1eb84121e579b04e7c97911ada20ab7d9",
+  "output_file": "model_fp32.onnx",
+  "output_sha256": "9163ecec60337d2953920ee2831ce40478c10050746c573b363e906a897031be",
+  "output_bytes": 45224201,
+  "format": "onnx",
+  "precision": "fp32",
+  "opset": 17,
+  "input_shape": [
+    null,
+    3,
+    128,
+    128
+  ],
+  "libraries": {
+    "torch": "2.14.0",
+    "onnx": "1.23.1",
+    "onnxruntime": "1.30.0",
+    "numpy": "2.5.3"
+  },
+  "command": "uv run --group ml python -m edge_model.convert",
+  "parity": {
+    "rows": 20,
+    "max_abs_delta_vs_reference_csv": 1.7285346984863281e-06,
+    "max_abs_delta_vs_pytorch": 1.7285346984863281e-06,
+    "tolerance": 0.0001,
+    "class_mismatches": [],
+    "class_order": [
+      "cat",
+      "dog"
+    ],
+    "passed": true
+  }
+}
