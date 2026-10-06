@@ -13,6 +13,8 @@ from jsonschema import Draft202012Validator, FormatChecker
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "contracts" / "edge-event.v1.schema.json"
 IMAGE_PREFIX = "edge-captures/v1/images/"
 IMAGE_SUFFIX = ".jpg"
+# predicted_class y confidence salen de la misma salida del modelo (P4-06).
+PREDICTION_TOLERANCE = 1e-6
 
 
 class EventValidationError(ValueError):
@@ -72,6 +74,12 @@ def validate_event(event: Mapping[str, Any]) -> None:
             finite = isinstance(value, int)  # Python permite enteros finitos mayores que float.
         if not finite:
             raise EventValidationError(f"{field}: debe ser un número finito")
+
+    probabilities = event["probabilities"]
+    if probabilities[event["predicted_class"]] < max(probabilities.values()):
+        raise EventValidationError("predicted_class: debe ser la clase de mayor probabilidad")
+    if abs(event["confidence"] - probabilities[event["predicted_class"]]) > PREDICTION_TOLERANCE:
+        raise EventValidationError("confidence: debe ser igual a probabilities[predicted_class]")
 
     crop = event["crop"]
     if crop is not None:

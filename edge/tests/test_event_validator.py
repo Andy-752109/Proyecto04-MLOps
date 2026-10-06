@@ -32,6 +32,8 @@ class EventValidatorTests(unittest.TestCase):
             "invalid-uuid-not-v4.json",
             "invalid-additional-property.json",
             "invalid-crop-out-of-frame.json",
+            "invalid-confidence-mismatch.json",
+            "invalid-predicted-not-argmax.json",
         )
         for name in names:
             with self.subTest(name=name), self.assertRaises(EventValidationError):
@@ -180,6 +182,30 @@ class EventValidatorTests(unittest.TestCase):
                     .read_text(encoding="utf-8")
                     .replace('"preprocess_ms": 12.5', f'"preprocess_ms": {constant}')
                 )
+                validate_event(event)
+
+
+class PredictionConsistencyTests(unittest.TestCase):
+    def test_predicted_class_must_be_argmax(self) -> None:
+        with self.assertRaisesRegex(EventValidationError, "predicted_class"):
+            validate_event(load_example("invalid-predicted-not-argmax.json"))
+
+    def test_confidence_must_match_predicted_probability(self) -> None:
+        with self.assertRaisesRegex(EventValidationError, "confidence"):
+            validate_event(load_example("invalid-confidence-mismatch.json"))
+
+    def test_confidence_within_tolerance_passes(self) -> None:
+        event = load_example("valid-cat-no-crop.json")
+        event["confidence"] = 0.93 + 5e-7
+        validate_event(event)
+
+    def test_tie_accepts_either_class(self) -> None:
+        for predicted in ("cat", "dog"):
+            with self.subTest(predicted=predicted):
+                event = load_example("valid-cat-no-crop.json")
+                event["probabilities"] = {"cat": 0.5, "dog": 0.5}
+                event["predicted_class"] = predicted
+                event["confidence"] = 0.5
                 validate_event(event)
 
 

@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "capture_id": "8f9f60e4-6d7a-4d92-8cc0-45e0b192cd65",
+  "captured_at": "2026-10-05T12:34:56-06:00",
+  "device_id": "edge-demo-01",
+  "model_version": "optimized-v1",
+  "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "runtime": "local-runtime",
+  "predicted_class": "dog",
+  "confidence": 0.07,
+  "probabilities": {
+    "cat": 0.93,
+    "dog": 0.07
+  },
+  "crop": null,
+  "preprocess_ms": 12.5,
+  "inference_ms": 38.2,
+  "image_key": "edge-captures/v1/images/8f9f60e4-6d7a-4d92-8cc0-45e0b192cd65.jpg"
+}
