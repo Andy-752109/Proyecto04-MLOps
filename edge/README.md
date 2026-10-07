@@ -14,3 +14,9 @@ python3 -m unittest discover -s edge/tests -v
 `None` si es válido; de lo contrario lanza `EventValidationError` con el campo y el
 motivo. No requiere AWS, cámara, modelo ni configuración YAML. `config.example.yaml`
 solo ilustra identificadores locales; este PR no implementa su lectura.
+
+## Uploader a S3 (P4-05)
+
+`edge/uploader.py` sube imagen y luego evento con `If-None-Match: *` y devuelve
+`sent`, `already_sent` o `failed`. Detalles, prueba de doble envío y comandos de
+lectura en [`docs/p4/aws-capturas.md`](../docs/p4/aws-capturas.md).

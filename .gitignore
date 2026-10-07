@@ -7,6 +7,7 @@
 # Entorno Python opcional para DVC.
 .venv-dvc/
 edge/.venv/
+edge/**/__pycache__/
 
 # Credenciales específicas de DVC; nunca se comparten con Git.
 .dvc/config.local
@@ -37,6 +38,8 @@ models/active_version.json*
 *.tflite
 *.engine
 edge/data/
+edge/models/
+edge/config.yaml
 mlruns/
 mlflow-store/
 data/derived/
