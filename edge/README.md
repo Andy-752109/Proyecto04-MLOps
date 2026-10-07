@@ -47,7 +47,8 @@ python -m edge.tools.generic_resnet18 --setup
 | `camera.index` | `1` | Cámara USB de la laptop; la webcam integrada suele ser `0` |
 | `camera.api` | `auto` | DirectShow (`cv2.CAP_DSHOW`) en Windows |
 | `camera.width` / `height` | `null` | Resolución nativa de la cámara |
-| `camera.warmup_frames` | `10` | Se descartan al abrir y antes de cada captura (autoexposición) |
+| `camera.warmup_frames` | `10` | Cuadros que se leen y descartan al abrir y antes de cada captura (autoexposición) |
+| `camera.settle_seconds` | `0.5` | Tiempo mínimo leyendo cuadros antes de capturar, para no devolver el cuadro de la escena anterior (DirectShow) |
 | `crop` | `{center_square: 0.8}` | Cuadrado centrado, 80% del lado menor. También `null` o `{x, y, width, height}` en píxeles |
 | `capture.mode` | `manual` | `manual`: Enter captura, `q` sale. `interval`: cada `interval_seconds` (10), Ctrl+C sale |
 

@@ -12,7 +12,10 @@ camera:
   api: auto           # auto = DirectShow (cv2.CAP_DSHOW) en Windows
   width: null         # null = resolución nativa de la cámara (probablemente 640x480)
   height: null
-  warmup_frames: 10   # cuadros descartados al abrir y antes de cada captura (autoexposición)
+  warmup_frames: 10   # cuadros que se leen y descartan al abrir y antes de cada captura
+  # Tiempo mínimo leyendo cuadros antes de capturar. Sin esto, tras cambiar la escena el primer
+  # Enter devolvía el cuadro anterior (DirectShow guarda el último cuadro y grab() no espera).
+  settle_seconds: 0.5
 
 model:
   # ONNX FP32 de #4 (PR #17): reports/p4/conversion/parity_fp32.json. No va en git:

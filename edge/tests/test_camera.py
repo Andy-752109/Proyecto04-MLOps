@@ -37,7 +37,18 @@ class FakeCapture:
         pass
 
 
+def use_fast_clock(test: unittest.TestCase) -> None:
+    """El vaciado espera `settle_seconds` de reloj: las pruebas no deben dormir de verdad."""
+    ticks = iter(range(1_000_000))
+    patcher = mock.patch("edge.camera.time.monotonic", side_effect=lambda: float(next(ticks)))
+    patcher.start()
+    test.addCleanup(patcher.stop)
+
+
 class CameraTests(unittest.TestCase):
+    def setUp(self) -> None:
+        use_fast_clock(self)
+
     def open(
         self, config: CameraConfig, opened: bool = True, names: list[str] | None = None
     ) -> FakeCapture:
@@ -103,6 +114,9 @@ class CameraByNameTests(unittest.TestCase):
     BUILT_IN = "USB2.0 UVC HD Webcam"
 
     open = CameraTests.open
+
+    def setUp(self) -> None:
+        use_fast_clock(self)
 
     def test_name_selects_the_matching_device_index(self) -> None:
         config = CameraConfig(index=1, name=self.USB)

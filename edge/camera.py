@@ -7,6 +7,7 @@ cambia entre arranques (la USB fue 1 y luego 0), pero el nombre del dispositivo 
 from __future__ import annotations
 
 import sys
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -77,12 +78,22 @@ class Camera:
             self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, config.width)
         if config.height:
             self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, config.height)
-        self._discard(config.warmup_frames)
+        self._discard()
 
-    def _discard(self, frames: int) -> None:
-        # Vacía el búfer: en modo manual el siguiente read() devolvería un frame viejo.
-        for _ in range(frames):
-            self._capture.grab()
+    def _discard(self) -> None:
+        """Descarta cuadros hasta tener uno reciente.
+
+        `grab()` de DirectShow no espera un cuadro nuevo: devuelve al instante el último
+        guardado, que tras un rato sin leer (modo manual) es de la escena anterior. Se lee
+        (`read()`) al menos `warmup_frames` veces y durante `settle_seconds` para que el
+        controlador entregue cuadros actuales.
+        """
+        config = self._config
+        deadline = time.monotonic() + config.settle_seconds
+        reads = 0
+        while reads < config.warmup_frames or time.monotonic() < deadline:
+            self._capture.read()
+            reads += 1
 
     @property
     def index(self) -> int:
@@ -91,7 +102,7 @@ class Camera:
 
     def read(self) -> np.ndarray:
         """Devuelve un frame BGR uint8 HxWx3 recién capturado."""
-        self._discard(self._config.warmup_frames)
+        self._discard()
         ok, frame = self._capture.read()
         if not ok or frame is None:
             raise CameraError(f"la cámara {self._index} no devolvió un frame")
