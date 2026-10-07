@@ -117,6 +117,24 @@ def test_model_sha256_matches_p4_02_schema(sha, valid):
 
 
 @pytest.mark.parametrize(
+    ("changes", "valid"),
+    [
+        ({"confidence": 0.93 + 5e-7}, True),
+        ({"confidence": 0.93 + 2e-6}, False),
+        ({"predicted_class": "dog", "confidence": 0.07}, False),
+        ({"confidence": 0.5, "probabilities": {"cat": 0.5, "dog": 0.5}}, True),
+    ],
+)
+def test_prediction_must_match_probabilities_like_edge_validator(changes, valid):
+    event = {**CAT, **changes}
+    if valid:
+        EdgeEventV1.model_validate_json(json.dumps(event))
+    else:
+        with pytest.raises(ValidationError):
+            EdgeEventV1.model_validate_json(json.dumps(event))
+
+
+@pytest.mark.parametrize(
     ("field", "value"),
     [("confidence", float("nan")), ("preprocess_ms", -1), ("inference_ms", float("inf"))],
 )

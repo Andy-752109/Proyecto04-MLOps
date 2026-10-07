@@ -1,5 +1,42 @@
-# Plantilla local sin credenciales. No forma parte del evento ni se lee en este PR.
-device_id: edge-demo-01
-model_version: optimized-v1
-model_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-runtime: local-runtime
+# Plantilla sin secretos con los valores aprobados por el PM (#6). Copia a edge/config.yaml
+# (ignorado por git) y ajusta. Las rutas relativas se resuelven contra la carpeta de este archivo.
+device_id: edge-laptop-01
+
+camera:
+  # En Windows el orden de los índices cambia entre arranques (la USB fue 1 y luego 0), así que
+  # se elige por nombre DirectShow (subcadena, sin distinguir mayúsculas). Con `name` definido,
+  # `index` se ignora. Nombres en la laptop edge: "GENERAL WEBCAM" (USB, VID 1B3F) y
+  # "USB2.0 UVC HD Webcam" (integrada). Lista los disponibles con: python -m edge cameras
+  name: GENERAL WEBCAM
+  index: 1            # solo si name: null
+  api: auto           # auto = DirectShow (cv2.CAP_DSHOW) en Windows
+  width: null         # null = resolución nativa de la cámara (probablemente 640x480)
+  height: null
+  warmup_frames: 10   # cuadros descartados al abrir y antes de cada captura (autoexposición)
+
+model:
+  # Variante final de #4: ONNX INT8 estática (PR #22). No va en git: descarga model_int8.onnx
+  # de S3 (models/edge_registry.json) a edge/models/. Al arrancar se verifica el SHA contra
+  # esta config y contra model_sha256 del registro.
+  path: models/model_int8.onnx
+  version: 1.0.0-int8
+  sha256: "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392"
+  runtime: onnxruntime
+  threads: null                        # null = lo que decida el runtime
+  image_size: 128
+  registry: ../models/edge_registry.json   # null = solo se verifica contra sha256 de esta config
+
+# Cuadrado centrado con lado = 80% del lado menor del frame. Alternativas:
+#   crop: null                                     (sin recorte)
+#   crop: {x: 80, y: 0, width: 480, height: 480}   (píxeles fijos del frame)
+crop:
+  center_square: 0.8
+
+capture:
+  mode: manual          # manual (Enter) | interval
+  interval_seconds: 10
+
+data_dir: data          # captures.jsonl, images/ (frame completo), crops/ y edge.log
+
+aws:
+  bucket: ""            # lo usa el uploader (P4-09); la captura nunca toca la red

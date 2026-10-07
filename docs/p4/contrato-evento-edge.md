@@ -43,8 +43,10 @@ rechazan, también dentro de `probabilities` y del objeto `crop`.
 | `image_key` | Clave exacta de la fotografía JPG: `edge-captures/v1/images/{capture_id}.jpg`, con el mismo UUID canónico lowercase. | Edge al construir el evento. |
 
 El schema no exige que `cat + dog == 1`: la representación de coma flotante vuelve
-inapropiada una igualdad exacta. Tampoco se añade una tolerancia semántica. No se
-impone por ahora que `confidence` sea igual a la probabilidad de la clase predicha.
+inapropiada una igualdad exacta. Sí se exige consistencia de la predicción (P4-06):
+`predicted_class` es la clase de mayor probabilidad (en un empate vale cualquiera) y
+`confidence` es igual a `probabilities[predicted_class]` con tolerancia 1e-6, porque
+el productor los genera de la misma salida del modelo.
 Las coordenadas de `crop` usan píxeles del frame original, antes del resize, con
 origen en la esquina superior izquierda. `image_key` apunta al frame completo;
 `crop` identifica la región de ese frame utilizada para inferencia. Así el portal

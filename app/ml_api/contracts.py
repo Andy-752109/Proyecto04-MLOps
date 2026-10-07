@@ -21,6 +21,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
+EDGE_PREDICTION_TOLERANCE = 1e-6
+
 
 class ContractModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
@@ -95,6 +97,17 @@ class EdgeEventV1(ContractModel):
         expected = f"edge-captures/v1/images/{self.capture_id}.jpg"
         if self.image_key != expected:
             raise ValueError("image_key debe apuntar al frame de capture_id")
+        return self
+
+    @model_validator(mode="after")
+    def prediction_is_consistent(self) -> "EdgeEventV1":
+        # Misma regla que edge/event_validator.py (P4-06): salen de la misma salida del modelo.
+        probabilities = {"cat": self.probabilities.cat, "dog": self.probabilities.dog}
+        predicted = probabilities[self.predicted_class]
+        if predicted < max(probabilities.values()):
+            raise ValueError("predicted_class debe ser la clase de mayor probabilidad")
+        if abs(self.confidence - predicted) > EDGE_PREDICTION_TOLERANCE:
+            raise ValueError("confidence debe ser igual a probabilities[predicted_class]")
         return self
 
 
