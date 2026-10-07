@@ -15,6 +15,7 @@ class FakeCapture:
     def __init__(self, index: int, api: int, opened: bool = True) -> None:
         self.index, self.api, self.opened = index, api, opened
         self.grabs = 0
+        self.reads = 0
         self.props: dict[int, float] = {}
 
     def isOpened(self) -> bool:  # API de OpenCV
@@ -29,13 +30,25 @@ class FakeCapture:
         return True
 
     def read(self):
+        self.reads += 1
         return True, np.zeros((480, 640, 3), dtype=np.uint8)
 
     def release(self) -> None:
         pass
 
 
+def use_fast_clock(test: unittest.TestCase) -> None:
+    """El vaciado espera `settle_seconds` de reloj: las pruebas no deben dormir de verdad."""
+    ticks = iter(range(1_000_000))
+    patcher = mock.patch("edge.camera.time.monotonic", side_effect=lambda: float(next(ticks)))
+    patcher.start()
+    test.addCleanup(patcher.stop)
+
+
 class CameraTests(unittest.TestCase):
+    def setUp(self) -> None:
+        use_fast_clock(self)
+
     def open(
         self, config: CameraConfig, opened: bool = True, names: list[str] | None = None
     ) -> FakeCapture:
@@ -61,9 +74,28 @@ class CameraTests(unittest.TestCase):
             capture = self.open(CameraConfig(index=0))
         self.assertEqual(capture.api, cv2.CAP_ANY)
 
-    def test_discards_warmup_frames_on_open_and_before_each_read(self) -> None:
-        capture = self.open(CameraConfig(warmup_frames=10))
-        self.assertEqual(capture.grabs, 20)
+    def test_flush_reads_frames_instead_of_grabbing_them(self) -> None:
+        # `grab()` de DirectShow no espera un cuadro nuevo: devuelve el cuadro guardado al instante.
+        # Hay que leer (read) para que el controlador entregue cuadros recientes.
+        capture = self.open(CameraConfig(warmup_frames=10, settle_seconds=0))
+        self.assertEqual(capture.grabs, 0)
+        self.assertEqual(capture.reads, 10 + 10 + 1)  # al abrir + antes de leer + la lectura
+
+    def test_flush_lasts_at_least_settle_seconds(self) -> None:
+        clock = {"now": 0.0}
+
+        def monotonic() -> float:
+            clock["now"] += 0.1  # cada consulta del reloj avanza 100 ms
+            return clock["now"]
+
+        with mock.patch("edge.camera.time.monotonic", side_effect=monotonic):
+            capture = self.open(CameraConfig(warmup_frames=2, settle_seconds=0.5))
+        # 0.5 s a 0.1 s por vuelta: más de las 2 lecturas mínimas, en cada vaciado
+        self.assertGreater(capture.reads, 2 + 2 + 1)
+
+    def test_warmup_frames_are_a_minimum_even_if_settle_is_zero(self) -> None:
+        capture = self.open(CameraConfig(warmup_frames=3, settle_seconds=0))
+        self.assertEqual(capture.reads, 3 + 3 + 1)
 
     def test_native_resolution_does_not_set_size(self) -> None:
         self.assertEqual(self.open(CameraConfig()).props, {})
@@ -82,6 +114,9 @@ class CameraByNameTests(unittest.TestCase):
     BUILT_IN = "USB2.0 UVC HD Webcam"
 
     open = CameraTests.open
+
+    def setUp(self) -> None:
+        use_fast_clock(self)
 
     def test_name_selects_the_matching_device_index(self) -> None:
         config = CameraConfig(index=1, name=self.USB)

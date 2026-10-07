@@ -121,6 +121,14 @@ class ConfigTests(unittest.TestCase):
         config = load_config(write_config(self.tmp, "a" * 64, camera={"index": 1}))
         self.assertIsNone(config.camera.name)
 
+    def test_camera_settle_seconds_default_and_validation(self) -> None:
+        config = load_config(write_config(self.tmp, "a" * 64, camera={"index": 0}))
+        self.assertEqual(config.camera.settle_seconds, 0.5)
+        config = load_config(write_config(self.tmp, "a" * 64, camera={"settle_seconds": 0}))
+        self.assertEqual(config.camera.settle_seconds, 0)
+        with self.assertRaisesRegex(ConfigError, "settle_seconds"):
+            load_config(write_config(self.tmp, "a" * 64, camera={"settle_seconds": -1}))
+
     def test_blank_camera_name_is_invalid(self) -> None:
         for name in ("", "   "):
             with (

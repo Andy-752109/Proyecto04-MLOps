@@ -56,7 +56,8 @@ python -m edge.tools.generic_resnet18 --setup
 | `camera.index` | `1` | Solo si `camera.name: null`; el orden de los índices cambia entre arranques |
 | `camera.api` | `auto` | DirectShow (`cv2.CAP_DSHOW`) en Windows |
 | `camera.width` / `height` | `null` | Resolución nativa de la cámara |
-| `camera.warmup_frames` | `10` | Se descartan al abrir y antes de cada captura (autoexposición) |
+| `camera.warmup_frames` | `10` | Cuadros que se leen y descartan al abrir y antes de cada captura (autoexposición) |
+| `camera.settle_seconds` | `0.5` | Tiempo mínimo leyendo cuadros antes de capturar, para no devolver el cuadro de la escena anterior (DirectShow) |
 | `crop` | `{center_square: 0.8}` | Cuadrado centrado, 80% del lado menor. También `null` o `{x, y, width, height}` en píxeles |
 | `model.registry` | `../models/edge_registry.json` | El SHA también debe coincidir con `model_sha256` del registro (#6) |
 | `capture.mode` | `manual` | `manual`: Enter captura, `q` sale. `interval`: cada `interval_seconds` (10), Ctrl+C sale |
