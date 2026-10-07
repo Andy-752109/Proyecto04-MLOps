@@ -77,8 +77,12 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.crop, {"center_square": 0.8})
         self.assertEqual(config.mode, "manual")
         self.assertEqual(config.interval_seconds, 10)
-        self.assertEqual(config.model.path, EXAMPLE_CONFIG.parent / "models" / "model_fp32.onnx")
-        self.assertEqual(config.model.version, "1.0.0-fp32")
+        self.assertEqual(config.model.path, EXAMPLE_CONFIG.parent / "models" / "model_int8.onnx")
+        self.assertEqual(config.model.version, "1.0.0-int8")
+        self.assertEqual(
+            config.model.registry,
+            EXAMPLE_CONFIG.parents[1] / "models" / "edge_registry.json",
+        )
         self.assertEqual(config.data_dir, EXAMPLE_CONFIG.parent / "data")
 
     def test_relative_paths_resolve_against_config_folder(self) -> None:
@@ -119,7 +123,10 @@ class ConfigTests(unittest.TestCase):
 
     def test_blank_camera_name_is_invalid(self) -> None:
         for name in ("", "   "):
-            with self.subTest(name=name), self.assertRaisesRegex(ConfigError, "camera.name"):
+            with (
+                self.subTest(name=name),
+                self.assertRaisesRegex(ConfigError, "camera.name"),
+            ):
                 load_config(write_config(self.tmp, "a" * 64, camera={"name": name}))
 
     def test_crop_is_parsed(self) -> None:
@@ -127,14 +134,30 @@ class ConfigTests(unittest.TestCase):
         config = load_config(write_config(self.tmp, "a" * 64, crop=crop))
         self.assertEqual(config.crop, crop)
 
-    def test_example_sha_matches_conversion_report(self) -> None:
-        # El SHA de la config debe ser el del ONNX que #4 verificó (PR #17).
-        report = EXAMPLE_CONFIG.parents[1] / "reports" / "p4" / "conversion" / "parity_fp32.json"
-        expected = json.loads(report.read_text(encoding="utf-8"))
+    def test_example_matches_edge_registry_and_conversion_log(self) -> None:
+        # La plantilla usa la variante final de #4 (PR #22): mismo SHA en el registro y en el log.
+        root = EXAMPLE_CONFIG.parents[1]
         config = load_config(EXAMPLE_CONFIG)
-        self.assertEqual(config.model.sha256, expected["output_sha256"])
-        self.assertEqual(config.model.path.name, expected["output_file"])
-        self.assertTrue(expected["parity"]["passed"])
+        entry = json.loads(config.model.registry.read_text(encoding="utf-8"))[config.model.version]
+        log = json.loads(
+            (root / "reports" / "p4" / "conversion" / "conversion_log.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(config.model.sha256, entry["model_sha256"])
+        self.assertEqual(config.model.path.name, entry["model_s3_path"].rsplit("/", 1)[1])
+        self.assertEqual(log["model_version"], config.model.version)
+        self.assertEqual(log["output"]["sha256"], config.model.sha256)
+        self.assertEqual(log["output"]["file"], config.model.path.name)
+        self.assertTrue(log["quality"]["passed"])
+        self.assertEqual(log["quality"]["parity_reference_class_mismatches"], [])
+
+    def test_example_registry_check_passes(self) -> None:
+        # expected_sha256 lee model_sha256 del registro real sin abrir el modelo.
+        from edge.pipeline import expected_sha256
+
+        config = load_config(EXAMPLE_CONFIG)
+        self.assertEqual(expected_sha256(config), config.model.sha256)
 
     def test_center_square_crop_is_parsed(self) -> None:
         config = load_config(write_config(self.tmp, "a" * 64, crop={"center_square": 0.8}))
@@ -150,6 +173,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.model.path, model.resolve())
         self.assertEqual(config.model.sha256, "b" * 64)
         self.assertEqual(config.model.version, "generic-resnet18")
+        self.assertIsNone(config.model.registry)  # el genérico no está en el registro
         self.assertEqual(config.crop, {"center_square": 0.8})  # el resto viene del ejemplo
         setup_config(config_path, model, "c" * 64)  # repetirlo solo cambia el sha
         self.assertEqual(load_config(config_path).model.sha256, "c" * 64)

@@ -103,7 +103,7 @@ SETUP_CONFIG = EDGE_DIR / "config.yaml"
 
 
 def write_config(config: Path, model: Path, sha256: str) -> None:
-    """Crea `config.yaml` desde el ejemplo (si no existe) y fija model.path/version/sha256."""
+    """Crea `config.yaml` desde el ejemplo (si no existe) y fija el modelo genérico (sin registro)."""
     if not config.exists():
         shutil.copyfile(EDGE_DIR / "config.example.yaml", config)
     text = config.read_text(encoding="utf-8")
@@ -112,6 +112,7 @@ def write_config(config: Path, model: Path, sha256: str) -> None:
         r"^(  path: )\S+": rf"\g<1>{model_path}",
         r"^(  version: )\S+": r"\g<1>generic-resnet18",
         r'^(  sha256: )"?[0-9a-fA-F]*"?': rf'\g<1>"{sha256}"',
+        r"^(  registry: )\S+": r"\g<1>null",  # el genérico no está en edge_registry.json
     }
     for pattern, value in replacements.items():
         text, count = re.subn(pattern, value, text, count=1, flags=re.MULTILINE)

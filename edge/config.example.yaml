@@ -15,15 +15,16 @@ camera:
   warmup_frames: 10   # cuadros descartados al abrir y antes de cada captura (autoexposición)
 
 model:
-  # ONNX FP32 de #4 (PR #17): reports/p4/conversion/parity_fp32.json. No va en git:
-  # copia model_fp32.onnx a edge/models/. La versión final será 1.0.0-int8 (#4, parte 2).
-  path: models/model_fp32.onnx
-  version: 1.0.0-fp32
-  sha256: "9163ecec60337d2953920ee2831ce40478c10050746c573b363e906a897031be"
+  # Variante final de #4: ONNX INT8 estática (PR #22). No va en git: descarga model_int8.onnx
+  # de S3 (models/edge_registry.json) a edge/models/. Al arrancar se verifica el SHA contra
+  # esta config y contra model_sha256 del registro.
+  path: models/model_int8.onnx
+  version: 1.0.0-int8
+  sha256: "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392"
   runtime: onnxruntime
   threads: null                        # null = lo que decida el runtime
   image_size: 128
-  registry: null                       # opcional: ../models/edge_registry.json (#4)
+  registry: ../models/edge_registry.json   # null = solo se verifica contra sha256 de esta config
 
 # Cuadrado centrado con lado = 80% del lado menor del frame. Alternativas:
 #   crop: null                                     (sin recorte)
