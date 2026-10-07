@@ -41,15 +41,16 @@ EVENT_COLUMNS = [
     "crop_frame_height",
 ]
 LOCAL_COLUMNS = ["image_path", "crop_path"]
-UPLOAD_COLUMNS = [
-    "upload_status",
-    "upload_error",
-    "upload_ms",
-    "upload_attempts",
-    "upload_bucket",
-    "upload_last_at",
-]
-COLUMNS = EVENT_COLUMNS + LOCAL_COLUMNS + UPLOAD_COLUMNS
+# columna del CSV -> clave de `upload_summary`
+UPLOAD_FIELDS = {
+    "upload_status": "status",
+    "upload_error": "error",
+    "upload_ms": "upload_ms",
+    "upload_attempts": "attempts",
+    "upload_bucket": "bucket",
+    "upload_last_at": "last_at",
+}
+COLUMNS = EVENT_COLUMNS + LOCAL_COLUMNS + list(UPLOAD_FIELDS)
 
 
 def upload_summary(attempts: list[dict[str, Any]]) -> dict[str, Any]:
@@ -98,8 +99,8 @@ def flatten(item: dict[str, Any]) -> dict[str, Any]:
         row[f"crop_{key}"] = crop.get(key)
     row["image_path"] = item["image_path"]
     row["crop_path"] = item["crop_path"]
-    for key in ("status", "error", "upload_ms", "attempts", "bucket", "last_at"):
-        row[f"upload_{key}" if key != "upload_ms" else key] = upload[key]
+    for column, key in UPLOAD_FIELDS.items():
+        row[column] = upload[key]
     return row
 
 

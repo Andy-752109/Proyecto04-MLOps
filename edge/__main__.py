@@ -133,7 +133,10 @@ def run(config: EdgeConfig, mode: str, count: int | None) -> int:
             waiting = sender.submitted - len(sender.results)
             if waiting:
                 log.info("esperando %d envíos en cola (máx. %d s)", waiting, SHUTDOWN_TIMEOUT_S)
-            left = sender.close(SHUTDOWN_TIMEOUT_S)
+            try:
+                left = sender.close(SHUTDOWN_TIMEOUT_S)
+            except KeyboardInterrupt:  # segundo Ctrl+C: no esperar más
+                left = sender.submitted - len(sender.results)
             if left:
                 log.warning(
                     "%d envíos quedaron pending; reenvía con: python -m edge retry --pending", left
@@ -186,10 +189,14 @@ def status(config: EdgeConfig) -> int:
     else:
         print("sha256      : sin modelo en caché")
     print(f"capturas    : {len(lines)} en {config.log_path}")
-    print(f"bucket      : {config.aws.bucket or '(sin envío)'}")
-    latest = UploadLog(config.upload_log_path).latest()
-    counts = Counter(status_of(latest, line["event"]["capture_id"]) for line in lines)
-    print("envíos      : " + ", ".join(f"{s} {counts[s]}" for s in STATUSES))
+    if config.aws.enabled:
+        print(f"bucket      : {config.aws.bucket}")
+        latest = UploadLog(config.upload_log_path).latest()
+        counts = Counter(status_of(latest, line["event"]["capture_id"]) for line in lines)
+        print("envíos      : " + ", ".join(f"{s} {counts[s]}" for s in STATUSES))
+    else:
+        print("bucket      : (vacío: solo local)")
+        print("envíos      : desactivados; configura aws.bucket para enviar o reintentar")
     if lines:
         last = lines[-1]["event"]
         print(
@@ -207,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--mode", choices=("manual", "interval"))
     run_parser.add_argument("--count", type=int, help="termina tras N capturas")
     run_parser.add_argument(
-        "--bucket", help="sustituye aws.bucket (p. ej. para provocar una falla)"
+        "--bucket", help='sustituye aws.bucket (p. ej. para provocar una falla); "" = solo local'
     )
     sub.add_parser("status", help="configuración, modelo, log local y estado de envíos")
     retry_parser = sub.add_parser("retry", help="reenvía el mismo evento de capturas ya hechas")
@@ -231,7 +238,7 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         print(f"config inválida: {exc}", file=sys.stderr)
         return 2
-    if getattr(args, "bucket", None):
+    if getattr(args, "bucket", None) is not None:  # --bucket "" = solo local
         config = dataclasses.replace(
             config, aws=dataclasses.replace(config.aws, bucket=args.bucket.strip())
         )

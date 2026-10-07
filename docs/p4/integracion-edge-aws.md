@@ -22,6 +22,8 @@ Cada intento se agrega a `edge/data/uploads.jsonl`, separado del log de inferenc
 | `failed` | Sin red, sin credenciales, sin permisos o bucket inexistente; `error` dice por qué |
 
 El estado de una captura es el de su último registro; `python -m edge status` los cuenta.
+Con `aws.bucket` vacío (o `run --bucket ""`) la app trabaja solo en local: no se envía nada y
+`status` muestra los envíos como desactivados en lugar de contarlos como `pending`.
 Un `failed` también aparece en consola y en `edge.log`:
 
 ```
@@ -123,8 +125,11 @@ python -m edge export --out reports/p4/evidence/integracion-edge-aws
 - `events_local.json`: `{"event", "image_path", "crop_path", "upload"}` por captura; el
   evento es el mismo que se sube a S3.
 - `events_local.csv`: una fila por captura con el evento aplanado y `upload_status`,
-  `upload_error`, `upload_ms`, `upload_attempts` (sin contar `pending`), `upload_bucket` y
-  `upload_last_at`.
+  `upload_error`, `upload_ms`, `upload_attempts`, `upload_bucket` y `upload_last_at`.
+
+`upload_attempts` cuenta solo los intentos reales de subida (`sent`, `already_sent` o
+`failed`); el registro `pending` que se escribe al encolar no es un intento. Por ejemplo,
+`pending` → `failed` → `sent` son 2 intentos.
 
 ## Evidencia para #9
 

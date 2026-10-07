@@ -217,7 +217,15 @@ def retry(
             upload_log.append_result(result, config.aws.bucket)
             _report(result, config.aws.bucket)
         return results
-    return [
-        send(uploader, upload_log, records[cid]["event"], image_path(config, records[cid]))
-        for cid in ids
-    ]
+    results = []
+    for cid in ids:
+        try:
+            event, image = records[cid]["event"], image_path(config, records[cid])
+        except (KeyError, TypeError) as error:  # registro de captures.jsonl incompleto
+            result = _failed(cid, f"registro local incompleto: {type(error).__name__}: {error}")
+            upload_log.append_result(result, config.aws.bucket)
+            _report(result, config.aws.bucket)
+        else:
+            result = send(uploader, upload_log, event, image)
+        results.append(result)
+    return results

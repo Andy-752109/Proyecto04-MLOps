@@ -201,6 +201,19 @@ class SyncTests(unittest.TestCase):
         (record,) = read_log(self.config.log_path)
         self.assertEqual(image_path(self.config, record), capture.image_path)
 
+    def test_retry_with_incomplete_local_record_is_failed(self) -> None:
+        capture = self.capture()
+        cid = capture.event["capture_id"]
+        (record,) = read_log(self.config.log_path)
+        del record["image_path"]
+        self.config.log_path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+        with self.assertLogs("edge", level="ERROR"):
+            (result,) = retry(self.config, [cid], self.factory)
+        self.assertEqual(result.status, "failed")
+        self.assertIn("registro local incompleto", result.error)
+        self.assertEqual(self.log.latest()[cid]["upload_status"], "failed")
+        self.assertEqual(self.s3.calls, [])
+
     def test_upload_log_rejects_unknown_status(self) -> None:
         with self.assertRaises(ValueError):
             self.log.append("x", "enviado", BUCKET)
@@ -339,6 +352,32 @@ class CliTests(unittest.TestCase):
         self.assertEqual(self.s3.calls, [])
         code, _, err = self.cli("retry", "--pending")
         self.assertEqual(code, 2)
+
+    def test_empty_bucket_flag_forces_local_only(self) -> None:
+        code, _, err = self.cli("run", "--count", "1", "--bucket", "")
+        self.assertEqual(code, 0)
+        self.assertIn("solo se guardan en local", err)
+        self.assertEqual(self.s3.calls, [])
+
+    def test_status_without_bucket_does_not_count_pending(self) -> None:
+        self.cli("run", "--count", "1", "--bucket", "")
+        _, out, _ = self.cli_status_no_bucket()
+        self.assertIn("bucket      : (vacío: solo local)", out)
+        self.assertIn("envíos      : desactivados", out)
+        self.assertNotIn("pending 1", out)
+
+    def cli_status_no_bucket(self) -> tuple[int, str, str]:
+        self.config_path = write_config(self.tmp, self.config_sha(), aws={"bucket": ""})
+        return self.cli("status")
+
+    def test_second_ctrl_c_while_waiting_still_warns_pending(self) -> None:
+        with mock.patch.object(BackgroundSender, "close", side_effect=KeyboardInterrupt):
+            self.s3.gate = threading.Event()  # el envío no termina antes de cerrar
+            code, _, err = self.cli("run", "--count", "1")
+            self.s3.gate.set()
+        self.assertEqual(code, 0)
+        self.assertIn("1 envíos quedaron pending", err)
+        self.assertIn("retry --pending", err)
 
     def config_sha(self) -> str:
         return load_config(self.config_path).model.sha256
