@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AnnotateScreen } from "@/components/annotate/AnnotateScreen";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { UploadScreen } from "@/components/upload/UploadScreen";
+import { CapturesPage } from "@/edge/pages/Captures";
 import { EvaluationPage } from "@/model/pages/Evaluation";
 import { ExperimentsPage } from "@/model/pages/Experiments";
 import { InferencePage } from "@/model/pages/Inference";
@@ -147,6 +148,14 @@ export function App(): JSX.Element {
         element={
           <AppLayout>
             <InferencePage />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/edge/captures"
+        element={
+          <AppLayout>
+            <CapturesPage />
           </AppLayout>
         }
       />

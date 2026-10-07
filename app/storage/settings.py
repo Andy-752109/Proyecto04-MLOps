@@ -92,6 +92,8 @@ class Settings(BaseSettings):
     # del equipo (rol MLOpsP3). Vacío = cadena de credenciales por defecto.
     aws_profile: str | None = None
     aws_region: str = "us-east-1"
+    # P4-07: se configura solo para ml-api; vacío produce 503 en la ruta edge.
+    edge_captures_bucket: str = ""
 
     # Copilot (P2-52). Opcional: el gate y el resto del pipeline no la necesitan,
     # así que su ausencia solo deshabilita el chat, no impide arrancar.

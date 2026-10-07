@@ -14,6 +14,7 @@ import re
 from collections.abc import Callable
 
 import uvicorn
+from botocore.exceptions import BotoCoreError, ClientError
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
@@ -28,6 +29,7 @@ from ml_api.contracts import (
     TrainingJob,
     TrainingJobList,
 )
+from ml_api.edge_captures import build_capture_list
 from ml_api.evaluation import build_evaluation_report
 from ml_api.experiments import get_metric_history, list_runs, update_run_tag
 from ml_api.inference import (
@@ -58,6 +60,7 @@ from ml_api.repository import (
 from ml_api.training_jobs import TrainingJobRejected, validate_new_training_job
 from selection.lock import lock_reason
 from storage.db import get_engine
+from storage.edge_capture_store import get_edge_s3_client
 from storage.model_store import (
     get_model_s3_client,
     head_object,
@@ -74,6 +77,7 @@ CancelJob = Callable[[str], TrainingJob | None]
 ModelStatusOf = Callable[[ModelEntry], dict | None]
 ModelDownloadUrlOf = Callable[[ModelEntry], str | None]
 ModelPackageInfoOf = Callable[[ModelEntry], dict | None]
+EdgeS3Client = Callable[[], object]
 
 
 def _default_model_status_of(entry: ModelEntry) -> dict | None:
@@ -141,6 +145,7 @@ def create_app(
     model_package_info_of: ModelPackageInfoOf | None = None,
     load_model: LoadModel | None = None,
     fetch_crop: FetchCrop | None = None,
+    edge_s3_client: EdgeS3Client | None = None,
 ) -> Starlette:
     settings = settings if settings is not None else Settings()
     list_jobs = list_jobs or (lambda: list_training_jobs(get_engine()))
@@ -162,6 +167,7 @@ def create_app(
     model_package_info_of = model_package_info_of or _default_model_package_info_of
     load_model = load_model or load_active_model
     fetch_crop = fetch_crop or fetch_crop_from_annotation
+    edge_s3_client = edge_s3_client or (lambda: get_edge_s3_client(settings))
 
     registry_path = settings.models_dir / "registry.json"
     active_version_path = settings.models_dir / "active_version.json"
@@ -169,6 +175,32 @@ def create_app(
 
     def health(_: Request) -> JSONResponse:
         return JSONResponse({"status": "ok"})
+
+    def edge_captures(request: Request) -> JSONResponse:
+        values = request.query_params.getlist("limit")
+        if len(values) > 1 or (values and not re.fullmatch(r"[0-9]+", values[0])):
+            return JSONResponse(
+                {"error": "limit debe ser un entero entre 1 y 100"}, status_code=400
+            )
+        limit = int(values[0]) if values else 50
+        if not 1 <= limit <= 100:
+            return JSONResponse(
+                {"error": "limit debe ser un entero entre 1 y 100"}, status_code=400
+            )
+        bucket = settings.edge_captures_bucket.strip()
+        if not bucket:
+            return JSONResponse(
+                {"error": "EDGE_CAPTURES_BUCKET no está configurado"}, status_code=503
+            )
+        try:
+            payload = build_capture_list(edge_s3_client(), bucket=bucket, limit=limit)
+        except (ClientError, BotoCoreError) as error:
+            logger.error("Capturas edge no disponibles por fallo S3/SSO (%s)", type(error).__name__)
+            return JSONResponse(
+                {"error": "Capturas no disponibles: verifica S3, permisos y sesión SSO"},
+                status_code=503,
+            )
+        return JSONResponse(payload.model_dump(mode="json"))
 
     def training_jobs(_: Request) -> JSONResponse:
         jobs = list_jobs()
@@ -323,6 +355,7 @@ def create_app(
     return Starlette(
         routes=[
             Route("/health", health, methods=["GET"]),
+            Route("/edge/captures", edge_captures, methods=["GET"]),
             Route("/training/jobs", training_jobs, methods=["GET"]),
             Route("/training/jobs", create_training_job_route, methods=["POST"]),
             Route("/training/jobs/{job_id}/cancel", cancel_training_job_route, methods=["POST"]),
