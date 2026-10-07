@@ -47,18 +47,30 @@ def now_utc() -> datetime:
 
 
 def expected_sha256(config: EdgeConfig) -> str:
-    """SHA esperado: el de config y, si hay registro edge, también debe coincidir con él."""
+    """SHA esperado: el de config y, si hay registro edge, también debe coincidir con él.
+
+    En `models/edge_registry.json` (#4) el SHA del `.onnx` es `model_sha256`;
+    `package_sha256` es el del `.tar.gz` y no aplica aquí.
+    """
     expected = config.model.sha256
     registry = config.model.registry
     if registry is not None:
-        entries = json.loads(registry.read_text(encoding="utf-8"))
-        entry = entries.get(config.model.version)
+        try:
+            entries = json.loads(registry.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise ModelVerificationError(f"no se pudo leer el registro {registry}: {exc}") from exc
+        entry = entries.get(config.model.version) if isinstance(entries, dict) else None
         if entry is None:
             raise ModelVerificationError(f"{config.model.version} no está en {registry}")
-        if entry["sha256"].lower() != expected:
+        registered = entry.get("model_sha256") if isinstance(entry, dict) else None
+        if not isinstance(registered, str):
             raise ModelVerificationError(
-                f"model.sha256 de config ({expected}) no coincide con {registry}"
-                f" ({entry['sha256']})"
+                f"{config.model.version} en {registry} no tiene model_sha256 (SHA del .onnx)"
+            )
+        if registered.lower() != expected:
+            raise ModelVerificationError(
+                f"model.sha256 de config ({expected}) no coincide con model_sha256 de"
+                f" {registry} ({registered})"
             )
     return expected
 

@@ -23,6 +23,13 @@ from edge.pipeline import EdgeApp, ModelVerificationError, read_log
 CAPTURED_AT = datetime(2026, 10, 6, 18, 0, tzinfo=timezone.utc)
 RED = (230, 30, 30)
 BLUE = (30, 30, 230)
+REAL_REGISTRY = Path(__file__).resolve().parents[2] / "models" / "edge_registry.json"
+REGISTRY_VERSION = "1.0.0-int8"
+
+
+def real_registry_entry() -> dict:
+    """Copia de la entrada `1.0.0-int8` de `models/edge_registry.json` (#4)."""
+    return dict(json.loads(REAL_REGISTRY.read_text(encoding="utf-8"))[REGISTRY_VERSION])
 
 
 def image_size(path: Path) -> tuple[int, int]:
@@ -126,18 +133,48 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelVerificationError, "no hay modelo"):
             self.app()
 
-    def test_registry_must_agree_with_config(self) -> None:
+    def registry_app(self, entry: object, version: str = REGISTRY_VERSION) -> EdgeApp:
+        """App que verifica contra un registro con la forma de `models/edge_registry.json`."""
         registry = self.tmp / "edge_registry.json"
-        registry.write_text(json.dumps({"tiny-test": {"sha256": self.sha}}), encoding="utf-8")
+        registry.write_text(json.dumps({version: entry}), encoding="utf-8")
         model = {
             "path": "models/model.onnx",
-            "version": "tiny-test",
+            "version": REGISTRY_VERSION,
             "sha256": self.sha,
             "registry": "edge_registry.json",
         }
-        self.app(model=model)
-        registry.write_text(json.dumps({"tiny-test": {"sha256": "1" * 64}}), encoding="utf-8")
-        with self.assertRaisesRegex(ModelVerificationError, "edge_registry"):
+        return self.app(model=model)
+
+    def test_registry_with_real_shape_must_agree_with_config(self) -> None:
+        # La entrada real de #4, con el SHA del modelo diminuto en lugar del INT8.
+        self.registry_app({**real_registry_entry(), "model_sha256": self.sha})
+        with self.assertRaisesRegex(ModelVerificationError, "model_sha256"):
+            self.registry_app({**real_registry_entry(), "model_sha256": "1" * 64})
+
+    def test_registry_package_sha_is_not_the_model_sha(self) -> None:
+        entry = {**real_registry_entry(), "package_sha256": self.sha}
+        with self.assertRaisesRegex(ModelVerificationError, "no coincide con model_sha256"):
+            self.registry_app(entry)
+
+    def test_registry_without_model_sha256_is_a_verification_error(self) -> None:
+        entry = real_registry_entry()
+        del entry["model_sha256"]
+        for case in (entry, {"sha256": self.sha}, "no-es-objeto"):
+            with self.subTest(case=case):
+                with self.assertRaisesRegex(ModelVerificationError, "no tiene model_sha256"):
+                    self.registry_app(case)
+
+    def test_registry_missing_version_or_unreadable(self) -> None:
+        with self.assertRaisesRegex(ModelVerificationError, "no está en"):
+            self.registry_app(real_registry_entry(), version="otra-version")
+        (self.tmp / "edge_registry.json").write_text("{no es json", encoding="utf-8")
+        model = {
+            "path": "models/model.onnx",
+            "version": REGISTRY_VERSION,
+            "sha256": self.sha,
+            "registry": "edge_registry.json",
+        }
+        with self.assertRaisesRegex(ModelVerificationError, "no se pudo leer el registro"):
             self.app(model=model)
 
 
