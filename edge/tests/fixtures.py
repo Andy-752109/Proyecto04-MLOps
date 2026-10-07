@@ -1,4 +1,4 @@
-"""Fixtures compartidas: un modelo ONNX diminuto y una config temporal.
+"""Fixtures compartidas: un modelo ONNX diminuto, una config temporal y un S3 en memoria.
 
 El modelo imita la interfaz del ResNet18 de P3 (entrada [1, 3, S, S], salida [1, 2] logits)
 con GlobalAveragePool + Gemm, para probar la app sin descargar nada.
@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from botocore.exceptions import ClientError
 
 from edge.backend import sha256_file
 
@@ -59,3 +60,40 @@ def solid_frame_bgr(rgb: tuple[int, int, int], height: int = 240, width: int = 3
     frame = np.empty((height, width, 3), dtype=np.uint8)
     frame[:] = rgb[::-1]
     return frame
+
+
+def precondition_failed() -> ClientError:
+    return ClientError(
+        {
+            "Error": {
+                "Code": "PreconditionFailed",
+                "Message": "At least one of the pre-conditions you specified did not hold",
+            },
+            "ResponseMetadata": {"HTTPStatusCode": 412},
+        },
+        "PutObject",
+    )
+
+
+class FakeS3:
+    """S3 mínimo en memoria con la semántica de `If-None-Match: *`."""
+
+    def __init__(self) -> None:
+        self.objects: dict[str, bytes] = {}
+        self.calls: list[str] = []
+        self.fail_next: list[Exception | None] = []
+
+    def put_object(self, *, Bucket, Key, Body, ContentType, IfNoneMatch):
+        self.calls.append(Key)
+        if self.fail_next:
+            error = self.fail_next.pop(0)
+            if error is not None:
+                raise error
+        assert IfNoneMatch == "*"
+        if Key in self.objects:
+            raise precondition_failed()
+        self.objects[Key] = Body
+        return {"ETag": '"etag"'}
+
+    def keys(self, prefix: str) -> list[str]:
+        return [k for k in self.objects if k.startswith(prefix)]

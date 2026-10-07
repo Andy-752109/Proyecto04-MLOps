@@ -36,7 +36,12 @@ capture:
   mode: manual          # manual (Enter) | interval
   interval_seconds: 10
 
-data_dir: data          # captures.jsonl, images/ (frame completo), crops/ y edge.log
+data_dir: data          # captures.jsonl, uploads.jsonl, images/ (frame completo), crops/ y edge.log
 
+# Envío a S3 (P4-09). Tras clasificar, cada captura se sube en segundo plano: la captura y la
+# inferencia nunca esperan a la red. bucket: "" = solo local. Sin credenciales en este archivo:
+# el perfil SSO se renueva con `aws sso login --profile <perfil>` antes de cada sesión.
 aws:
-  bucket: ""            # lo usa el uploader (P4-09); la captura nunca toca la red
+  bucket: mlops-p4-edge-captures-222629887955
+  profile: mlops-p3     # nombre local libre; debe asumir el rol MLOpsP3. null = AWS_PROFILE
+  region: us-east-1

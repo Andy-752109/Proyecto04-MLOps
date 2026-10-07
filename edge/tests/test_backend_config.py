@@ -84,6 +84,8 @@ class ConfigTests(unittest.TestCase):
             EXAMPLE_CONFIG.parents[1] / "models" / "edge_registry.json",
         )
         self.assertEqual(config.data_dir, EXAMPLE_CONFIG.parent / "data")
+        self.assertEqual(config.aws.bucket, "mlops-p4-edge-captures-222629887955")
+        self.assertEqual((config.aws.profile, config.aws.region), ("mlops-p3", "us-east-1"))
 
     def test_relative_paths_resolve_against_config_folder(self) -> None:
         config = load_config(write_config(self.tmp, "a" * 64))
