@@ -1,4 +1,4 @@
-"""Conversión P4-04 (parte 1): checkpoint de P3 1.0.0 -> ONNX FP32 con paridad verificada.
+"""Conversión P4-04: checkpoint de P3 1.0.0 -> ONNX FP32 (paridad verificada) -> INT8 estática.
 
 Exporta `eval_v1.0.0/artifacts/checkpoint/best.pt` a ONNX (opset fijo, batch dinámico),
 corre ONNX Runtime (CPU) sobre `reports/p4/reference/parity_reference.csv` y compara las
@@ -7,8 +7,9 @@ orden de clases o si la clase predicha difiere. Se corre desde `app/`:
 
     uv run --group ml python -m edge_model.convert
 
-La salida por defecto va a `build/edge/1.0.0-fp32/` (ignorado por Git: no se versionan
-binarios de modelo).
+Tras la paridad FP32 genera la variante INT8 (`edge_model.quantize`); `--fp32-only` la omite.
+Las salidas van a `build/edge/1.0.0-fp32/` y `build/edge/1.0.0-int8/` (ignorado por Git: no se
+versionan binarios de modelo); las evidencias van a `reports/p4/conversion/`.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ import onnxruntime as ort
 import torch
 from PIL import Image
 
+from edge_model import quantize
 from edge_model.baseline import (
     CLASSES,
     EXPECTED_CHECKPOINT_SHA256,
@@ -105,6 +107,12 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=ROOT / "reports" / "p4" / "conversion" / "parity_fp32.json",
     )
+    p.add_argument("--fp32-only", action="store_true", help="No generar la variante INT8.")
+    p.add_argument(
+        "--manifest",
+        type=Path,
+        default=ROOT / "data" / "derived" / "manifests" / "v0.1.1" / "manifest.csv",
+    )
     args = p.parse_args(argv)
 
     torch.set_num_threads(1)
@@ -112,6 +120,12 @@ def main(argv: list[str] | None = None) -> int:
     export_onnx(model, config["image_size"], args.out)
     parity = check_parity(model, args.out, args.parity_csv, args.crops, config["image_size"])
 
+    libraries = {
+        "torch": torch.__version__,
+        "onnx": onnx.__version__,
+        "onnxruntime": ort.__version__,
+        "numpy": np.__version__,
+    }
     report = {
         "source_version": "1.0.0",
         "source_checkpoint_sha256": checkpoint_sha,
@@ -122,12 +136,7 @@ def main(argv: list[str] | None = None) -> int:
         "precision": "fp32",
         "opset": OPSET,
         "input_shape": [None, 3, config["image_size"], config["image_size"]],
-        "libraries": {
-            "torch": torch.__version__,
-            "onnx": onnx.__version__,
-            "onnxruntime": ort.__version__,
-            "numpy": np.__version__,
-        },
+        "libraries": libraries,
         "command": "uv run --group ml python -m edge_model.convert",
         "parity": parity,
     }
@@ -135,7 +144,22 @@ def main(argv: list[str] | None = None) -> int:
     print(text)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(text + "\n", encoding="utf-8")
-    return 0 if parity["passed"] else 1
+    if not parity["passed"]:
+        return 1
+    if args.fp32_only:
+        return 0
+    return quantize.run(
+        fp32=args.out,
+        manifest=args.manifest,
+        crops=args.crops,
+        package_src=args.package_dir,
+        image_size=config["image_size"],
+        checkpoint_sha=checkpoint_sha,
+        root=ROOT,
+        opset=OPSET,
+        libraries=libraries,
+        command="uv run --group ml python -m edge_model.convert",
+    )
 
 
 if __name__ == "__main__":

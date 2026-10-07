@@ -1,0 +1,15 @@
+{
+    "1.0.0-int8": {
+        "source_version": "1.0.0",
+        "source_checkpoint_sha256": "f759cde23fc314b63c4a4e3c20127ef1eb84121e579b04e7c97911ada20ab7d9",
+        "s3_path": "s3://mlops-p3-models-222629887955/models/edge/1.0.0-int8/edge_package_1.0.0-int8.tar.gz",
+        "VersionId": "Myb4UnFIff2_eygad7p6c0C0lC2AHlDs",
+        "package_sha256": "9bebb1ead78a27f21c286f5d97f25b5e8c9334668f856e821e2f00167c45132c",
+        "model_s3_path": "s3://mlops-p3-models-222629887955/models/edge/1.0.0-int8/model_int8.onnx",
+        "model_VersionId": "8xfGLRI8Mlq07SyM9hsODKBfuC1c24ig",
+        "model_sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392",
+        "technique": "static_quantization_int8_qdq_per_channel",
+        "runtime": "onnxruntime-cpu",
+        "format": "onnx"
+    }
+}

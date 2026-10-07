@@ -102,3 +102,9 @@ python -m unittest discover -s edge/tests -v
 ```
 
 No usan cámara, red ni modelos reales: el modelo ONNX diminuto se construye en el test.
+
+## Uploader a S3 (P4-05)
+
+`edge/uploader.py` sube imagen y luego evento con `If-None-Match: *` y devuelve
+`sent`, `already_sent` o `failed`. Detalles, prueba de doble envío y comandos de
+lectura en [`docs/p4/aws-capturas.md`](../docs/p4/aws-capturas.md).

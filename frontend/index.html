@@ -4,6 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Portal de Anotación · Search</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-light-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" media="(prefers-color-scheme: light)" href="/favicon-light-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" media="(prefers-color-scheme: light)" href="/favicon-light-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" media="(prefers-color-scheme: dark)" href="/favicon-dark-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" media="(prefers-color-scheme: dark)" href="/favicon-dark-32.png" />
+    <link rel="apple-touch-icon" sizes="256x256" href="/favicon-light-256.png" />
+    <script>
+      if (navigator.vendor === "Apple Computer, Inc.") {
+        const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
+        const favicon = document.querySelector('link[rel="icon"]:not([media])');
+        document.querySelectorAll('link[rel="icon"][media]').forEach((link) => link.remove());
+
+        const updateFavicon = () => {
+          favicon.remove();
+          favicon.href = colorScheme.matches ? "/favicon-dark-32.png" : "/favicon-light-32.png";
+          document.head.append(favicon);
+        };
+
+        updateFavicon();
+        colorScheme.addEventListener("change", updateFavicon);
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

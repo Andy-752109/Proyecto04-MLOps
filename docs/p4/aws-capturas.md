@@ -163,7 +163,85 @@ aws s3api put-object --bucket "$BUCKET" --key otro-prefijo/x.txt --body /dev/nul
 Con el versionado activo, el objeto de prueba queda en el bucket (no se puede borrar con
 `MLOpsP3`); es inocuo y está fuera de `events/` e `images/`.
 
-## 7. Comandos de solo lectura para el evaluador
+## 7. Uploader (`edge/uploader.py`)
+
+Sube una captura en dos escrituras condicionales (`If-None-Match: *`): primero la imagen
+(`image/jpeg`) y después el evento (`application/json`).
+
+| Resultado | Cuándo |
+|---|---|
+| `sent` | El evento se creó en esta llamada |
+| `already_sent` | El evento ya existía (HTTP 412): la captura ya estaba completa |
+| `failed` | Evento inválido, imagen ilegible, sin red, sin credenciales o sin permisos; va con `error` |
+
+Siempre devuelve `upload_ms`, que va solo al log local y nunca al evento.
+
+- **Reintentos:** si se cae entre la imagen y el evento, el reintento recibe 412 en la imagen
+  (no la sobrescribe) y crea el evento. Como el evento va al final, en S3 nunca queda un
+  evento sin su imagen.
+- **Contenido idéntico:** el evento se serializa en JSON canónico (llaves ordenadas): un
+  reintento manda los mismos bytes.
+- **Credenciales:** solo la cadena por defecto de boto3 (perfil SSO o credenciales
+  temporales de `aws configure export-credentials`). Los errores se reducen a código y
+  mensaje de AWS.
+- **Perfil:** el nombre del perfil local es libre (aquí `mlops-p3`; en la prueba de #5 fue
+  `mlops-p4`). Lo que importa es que asuma el rol `MLOpsP3` en la cuenta `222629887955`.
+- **Sin red:** timeouts de 5 s (conexión) y 15 s (lectura), con 2 intentos. Falla rápido; el
+  reintento es de P4-09.
+
+```python
+from edge.uploader import Uploader, make_s3_client
+
+uploader = Uploader("mlops-p4-edge-captures-222629887955", make_s3_client("mlops-p3"))
+result = uploader.upload(event, image_path)   # UploadResult(status, capture_id, upload_ms, error)
+```
+
+### Prueba de doble envío
+
+Esperado: el primer envío `sent`, el segundo `already_sent` y un solo objeto de cada tipo.
+No uses `contracts/examples/valid-cat-no-crop.json` tal cual: ese `capture_id` ya está en
+el bucket (pruebas de #19) y las dos corridas darían `already_sent`. Copia el ejemplo con
+un `capture_id` nuevo (UUID v4 en minúsculas) y su `image_key`:
+
+```bash
+export BUCKET=mlops-p4-edge-captures-222629887955
+CAPTURE_ID=$(python - <<'EOF'
+import json, uuid
+from edge.event_validator import validate_event
+event = json.load(open("contracts/examples/valid-cat-no-crop.json", encoding="utf-8"))
+event["capture_id"] = str(uuid.uuid4())
+event["image_key"] = f"edge-captures/v1/images/{event['capture_id']}.jpg"
+validate_event(event)
+json.dump(event, open("/tmp/evento-nuevo.json", "w", encoding="utf-8"), indent=2)
+print(event["capture_id"])
+EOF
+)
+
+for i in 1 2; do
+  python -m edge.uploader --bucket "$BUCKET" --profile mlops-p3 \
+    --event /tmp/evento-nuevo.json --image contracts/examples/test-capture.jpg
+done
+
+aws s3api list-objects-v2 --bucket "$BUCKET" --prefix edge-captures/v1/ --profile mlops-p3 \
+  --query "Contents[?contains(Key, '$CAPTURE_ID')].[Key,Size,LastModified]" --output table
+```
+
+`list-objects-v2` debe mostrar exactamente `events/{capture_id}.json` e
+`images/{capture_id}.jpg`, con el `LastModified` del primer envío. Evidencia real en
+[#5](https://github.com/Andy-752109/Proyecto04-MLOps/issues/5#issuecomment-6025215028).
+
+### Tests (sin AWS)
+
+```bash
+python -m unittest discover -s edge/tests -v
+```
+
+`edge/tests/test_uploader.py` usa `botocore.stub.Stubber` para los parámetros exactos de
+cada `put_object` (orden, claves, `ContentType`, `IfNoneMatch`) y para el manejo de 412 y
+403. Un S3 en memoria con la semántica de `If-None-Match` prueba el doble envío, la caída
+antes de la imagen, la caída entre imagen y evento, y la falta de credenciales.
+
+## 8. Comandos de solo lectura para el evaluador
 
 ```bash
 export AWS_PROFILE=mlops-p3
@@ -174,7 +252,7 @@ aws s3api head-object --bucket "$BUCKET" --key edge-captures/v1/events/<capture_
 aws s3api head-object --bucket "$BUCKET" --key edge-captures/v1/images/<capture_id>.jpg
 ```
 
-## 8. Configuración en `ml-api`
+## 9. Configuración en `ml-api`
 
 `ml-api` (P4-07, PR #18) lee el bucket desde `EDGE_CAPTURES_BUCKET`, con el perfil
 `mlops-p3`. Su valor por defecto en `docker-compose.yml` es este bucket. No publicar
