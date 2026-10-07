@@ -12,10 +12,12 @@ al final porque su existencia indica que la captura está completa.
 Credenciales: solo la cadena por defecto de boto3 (perfil SSO o credenciales temporales de
 `aws configure export-credentials`). Nunca se registran ni se guardan.
 
-Prueba manual contra S3 (dos veces seguidas = un objeto de cada tipo):
+Prueba manual contra S3 (dos veces seguidas = `sent` y luego `already_sent`). Usa un evento
+con un `capture_id` nuevo: el de `contracts/examples/` ya está en el bucket. El procedimiento
+completo está en `docs/p4/aws-capturas.md` §7.
 
     python -m edge.uploader --bucket mlops-p4-edge-captures-222629887955 \\
-        --profile mlops-p3 --event contracts/examples/valid-cat-no-crop.json \\
+        --profile mlops-p3 --event /tmp/evento-nuevo.json \\
         --image contracts/examples/test-capture.jpg
 """
 

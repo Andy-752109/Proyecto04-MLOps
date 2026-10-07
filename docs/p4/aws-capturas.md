@@ -184,6 +184,8 @@ Siempre devuelve `upload_ms`, que va solo al log local y nunca al evento.
 - **Credenciales:** solo la cadena por defecto de boto3 (perfil SSO o credenciales
   temporales de `aws configure export-credentials`). Los errores se reducen a código y
   mensaje de AWS.
+- **Perfil:** el nombre del perfil local es libre (aquí `mlops-p3`; en la prueba de #5 fue
+  `mlops-p4`). Lo que importa es que asuma el rol `MLOpsP3` en la cuenta `222629887955`.
 - **Sin red:** timeouts de 5 s (conexión) y 15 s (lectura), con 2 intentos. Falla rápido; el
   reintento es de P4-09.
 
@@ -196,13 +198,37 @@ result = uploader.upload(event, image_path)   # UploadResult(status, capture_id,
 
 ### Prueba de doble envío
 
-Esperado: un solo objeto de cada tipo, y el segundo envío `already_sent`.
+Esperado: el primer envío `sent`, el segundo `already_sent` y un solo objeto de cada tipo.
+No uses `contracts/examples/valid-cat-no-crop.json` tal cual: ese `capture_id` ya está en
+el bucket (pruebas de #19) y las dos corridas darían `already_sent`. Copia el ejemplo con
+un `capture_id` nuevo (UUID v4 en minúsculas) y su `image_key`:
 
 ```bash
+export BUCKET=mlops-p4-edge-captures-222629887955
+CAPTURE_ID=$(python - <<'EOF'
+import json, uuid
+from edge.event_validator import validate_event
+event = json.load(open("contracts/examples/valid-cat-no-crop.json", encoding="utf-8"))
+event["capture_id"] = str(uuid.uuid4())
+event["image_key"] = f"edge-captures/v1/images/{event['capture_id']}.jpg"
+validate_event(event)
+json.dump(event, open("/tmp/evento-nuevo.json", "w", encoding="utf-8"), indent=2)
+print(event["capture_id"])
+EOF
+)
+
 for i in 1 2; do
-  python -m edge.uploader --bucket mlops-p4-edge-captures-222629887955 --profile mlops-p3     --event contracts/examples/valid-cat-no-crop.json --image contracts/examples/test-capture.jpg
+  python -m edge.uploader --bucket "$BUCKET" --profile mlops-p3 \
+    --event /tmp/evento-nuevo.json --image contracts/examples/test-capture.jpg
 done
+
+aws s3api list-objects-v2 --bucket "$BUCKET" --prefix edge-captures/v1/ --profile mlops-p3 \
+  --query "Contents[?contains(Key, '$CAPTURE_ID')].[Key,Size,LastModified]" --output table
 ```
+
+`list-objects-v2` debe mostrar exactamente `events/{capture_id}.json` e
+`images/{capture_id}.jpg`, con el `LastModified` del primer envío. Evidencia real en
+[#5](https://github.com/Andy-752109/Proyecto04-MLOps/issues/5#issuecomment-6025215028).
 
 ### Tests (sin AWS)
 
