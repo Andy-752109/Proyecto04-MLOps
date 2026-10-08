@@ -21,7 +21,9 @@ con Python 3.12 de 64 bits. La raíz debe contener `app/`, `edge/`, `models/` y 
 ejecutar allí `python -m edge.benchmark` permite importar
 `from app.edge_model.baseline import ...` sin modificar `PYTHONPATH`. Preparar modelos y datos
 con red antes de medir. ONNX Runtime en Windows requiere Microsoft Visual C++ Redistributable
-x64, según `decision-runtime.md`.
+x64, según `decision-runtime.md`. Conviene clonar en una ruta corta, por ejemplo
+`C:\mlops\Proyecto04-MLOps`: las dependencias de DVC/pip pueden superar el límite tradicional
+de longitud de rutas de Windows.
 
 1. Instalar las dependencias edge y **PyTorch CPU** en el Python que ejecutará el benchmark.
    Las versiones están fijadas en `app/pyproject.toml`; el índice CPU evita instalar una
@@ -29,8 +31,11 @@ x64, según `decision-runtime.md`.
 
    ```powershell
    python -m pip install -r edge/requirements.txt
+   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
    python -m pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cpu
+   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
    python -c "import torch, torchvision; print('torch:', torch.__version__); print('torchvision:', torchvision.__version__); print('CUDA:', torch.cuda.is_available())"
+   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
    ```
 
 2. Iniciar SSO y recuperar el paquete original de
@@ -44,7 +49,7 @@ x64, según `decision-runtime.md`.
    if ($LASTEXITCODE -ne 0) { throw 'Falló el inicio de sesión SSO' }
    Push-Location app
    uv sync --locked --no-build
-   if ($LASTEXITCODE -ne 0) { throw 'Falló la preparación de app/.venv' }
+   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
    uv run python verify_reload.py --version 1.0.0 --profile mlops-p3
    if ($LASTEXITCODE -ne 0) { throw 'Falló la verificación del paquete original' }
    Pop-Location
@@ -54,28 +59,29 @@ x64, según `decision-runtime.md`.
    El paquete también debe contener `config.json` y `class_map.json`. El benchmark vuelve a
    verificar el SHA de `best.pt` contra `models/registry.json` y `reports/selection.json`.
 
-3. Materializar los recortes mediante el flujo DVC documentado para un clon limpio: descargar
-   los datos fuente del remote `prod` y reproducir la etapa `crops` de `dvc.yaml`. El perfil
-   se configura **solo localmente** en `.dvc/config.local`. Los 20 paths de
-   `parity_reference.csv` son relativos a `data/derived/crops/`; son recortes de validation,
-   no los IDs de calibración de train.
+3. Materializar directamente la salida cacheada `data/derived/crops` de la etapa `crops` de
+   `dvc.yaml`, ya sincronizada con el remote `prod`. `uvx` ejecuta DVC `3.67.1` en un entorno
+   aislado con Python 3.12: no depende de `py -3.12`, de `Activate.ps1` ni de cambiar la
+   ExecutionPolicy. El perfil se configura **solo localmente** en `.dvc/config.local`.
+   Los 20 paths de `parity_reference.csv` son relativos a `data/derived/crops/` y
+   corresponden a validation, no a los IDs de calibración de train.
 
    ```powershell
-   py -3.12 -m venv .venv-dvc
-   .venv-dvc\Scripts\Activate.ps1
-   python -m pip install 'dvc[s3]==3.67.1'
-   dvc remote modify --local prod profile mlops-p3
-   dvc pull -r prod data/raw/images.dvc data/raw/annotations.dvc
-   if ($LASTEXITCODE -ne 0) { throw 'Falló la descarga DVC de datos fuente' }
-   dvc repro crops
-   if ($LASTEXITCODE -ne 0) { throw 'Falló la etapa DVC crops' }
+   Get-Command uvx -ErrorAction Stop | Out-Null
+   uvx --python 3.12 --from 'dvc[s3]==3.67.1' dvc --version
+   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+   uvx --python 3.12 --from 'dvc[s3]==3.67.1' dvc remote modify --local prod profile mlops-p3
+   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+   uvx --python 3.12 --from 'dvc[s3]==3.67.1' dvc pull -r prod crops
+   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
    if (-not (Test-Path 'data/derived/crops/images' -PathType Container)) { throw 'Falta data/derived/crops/images' }
-   deactivate
+   git diff --exit-code -- dvc.lock
+   if ($LASTEXITCODE -ne 0) { throw 'dvc.lock cambió durante la preparación' }
    ```
 
-   `dvc repro crops` ejecuta `app/dvc_crops_stage.py` mediante `uv` y el entorno `app/.venv`
-   preparado en el paso anterior. El benchmark carga los 20 JPEG antes de cronometrar y
-   registra el SHA-256 de cada uno.
+   `dvc pull` descarga y coloca la salida de la etapa sin ejecutar `dvc repro` ni actualizar
+   `dvc.lock`. El preflight del paso 5 comprueba los **20 JPEG** del CSV; el benchmark los carga
+   antes de cronometrar y registra el SHA-256 de cada uno.
 
 4. Descargar `s3://mlops-p3-models-222629887955/models/edge/1.0.0-int8/model_int8.onnx`
    **por el VersionId del archivo ONNX**, distinto del VersionId del paquete, conforme a
@@ -120,6 +126,7 @@ x64, según `decision-runtime.md`.
    assert not missing, f'Faltan recortes: {missing}'
    print('Preflight OK:', sys.version.split()[0], torch.__version__, torchvision.__version__, onnxruntime.__version__, len(paths), 'recortes')
    '@ | python -
+   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
    ```
 
 6. Conectar la laptop a corriente, cerrar otros programas y comprobar que la salida aún no
