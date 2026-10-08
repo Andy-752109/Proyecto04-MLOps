@@ -1,0 +1,148 @@
+{
+  "status": "complete",
+  "device": {
+    "id": "edge-laptop-01",
+    "hostname": "edge-laptop-01",
+    "os": "Windows-10-10.0.19045-SP0",
+    "processor": "Intel64 Family 6 Model 158 Stepping 9, GenuineIntel"
+  },
+  "run_conditions": {
+    "power_state": "connected",
+    "other_processes": "none",
+    "temperature_c": null
+  },
+  "runtime_versions": {
+    "python": "3.12.10",
+    "numpy": "2.5.3",
+    "pillow": "12.3.0",
+    "torch": "pytorch-2.14.0+cpu",
+    "onnxruntime": "onnxruntime-1.30.0"
+  },
+  "threads": {
+    "pytorch_intra_op": 1,
+    "pytorch_inter_op": 1,
+    "onnx_intra_op": 1
+  },
+  "protocol": {
+    "warmups": 10,
+    "measurements": 100,
+    "percentile_method": "linear: position=(n-1)*q, interpolación entre vecinos",
+    "included": "preprocess(RGB uint8 a tensor) + predict(probabilidades) sobre CPU",
+    "excluded": [
+      "cámara",
+      "disco",
+      "decodificación JPEG",
+      "carga de modelos",
+      "upload",
+      "red"
+    ],
+    "sequence": "20 referencias en orden CSV, repetidas; orden de variantes alternado por rep"
+  },
+  "variants": {
+    "original": {
+      "version": "1.0.0",
+      "runtime": "pytorch-2.14.0+cpu",
+      "path": "eval_v1.0.0\\artifacts\\checkpoint\\best.pt",
+      "checkpoint_sha256": "f759cde23fc314b63c4a4e3c20127ef1eb84121e579b04e7c97911ada20ab7d9",
+      "artifact_bytes": 45304641,
+      "warmup_count": 10,
+      "measurement_count": 100,
+      "preprocess_ms": {
+        "p50": 0.9241,
+        "p95": 1.32622
+      },
+      "inference_ms": {
+        "p50": 23.1682,
+        "p95": 23.56556
+      },
+      "total_ms": {
+        "p50": 24.155,
+        "p95": 24.727215
+      }
+    },
+    "optimized": {
+      "version": "1.0.0-int8",
+      "runtime": "onnxruntime-1.30.0",
+      "path": "edge\\models\\model_int8.onnx",
+      "model_sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392",
+      "artifact_bytes": 11431238,
+      "warmup_count": 10,
+      "measurement_count": 100,
+      "preprocess_ms": {
+        "p50": 0.91515,
+        "p95": 1.334705
+      },
+      "inference_ms": {
+        "p50": 7.9786,
+        "p95": 8.18367
+      },
+      "total_ms": {
+        "p50": 8.9102,
+        "p95": 9.436274999999998
+      }
+    }
+  },
+  "inputs": {
+    "reference_csv": "reports\\p4\\reference\\parity_reference.csv",
+    "reference_csv_sha256": "9c21e2439cf3c546e8b24eec02e436dae3f66d017abb138a51ca41708b9da18c",
+    "input_count": 20,
+    "input_ids": [
+      "000011_000010",
+      "000043_000069",
+      "000051_000050",
+      "000062_000044",
+      "000069_000083",
+      "000074_000088",
+      "000146_000165",
+      "000160_000182",
+      "000168_000191",
+      "000168_000192",
+      "000238_000270",
+      "000290_000333",
+      "000381_000366",
+      "000411_000396",
+      "000418_000403",
+      "000430_000419",
+      "000447_000436",
+      "000456_000445",
+      "000618_000618",
+      "000633_000627"
+    ],
+    "jpeg_sha256": {
+      "000011_000010": "99daa02166e4b387413c4c67b11a5562dc0110e1d473d230d964c64fce758393",
+      "000043_000069": "cc36efbaeb235a91dc20a096a6e4fd6aa1cbf717a5676a2ca518df15a1c22e0e",
+      "000051_000050": "8394d3a49d0f9f3660891e2ee2800b17091cdf004b7ab38bd4b3acc3d90af48a",
+      "000062_000044": "38fb8941e65f657f472cb1e85c51285c6ec7b5d1254801ddb823d6f83bd94a74",
+      "000069_000083": "c66346c63e16acea06011a3931f08b4d1aa438d9a6d3cad9f11ed26533b1117e",
+      "000074_000088": "534bcb6b5da1462ce4b999c9d94750e98ca9e60ac61eb55aed2a71316622460b",
+      "000146_000165": "7029ca1d1a958d518f49edd22155463f9d999910c09dbad42b97eb0ea166165b",
+      "000160_000182": "146786afc8c6ff67ba5ea90f664517fe212128f948c97b42bd51bfbcff490241",
+      "000168_000191": "0619bc4411c66f20db2d13713f322403c7e6acb71f60610d28d27977333d8133",
+      "000168_000192": "eee5979e163864d248ea317b7463df5baa188c9f7703f5a0c2d0792df28637db",
+      "000238_000270": "ed34ecbb1154025785c7422dcb4be7c370ab2aacca98eefa5ff3cd6131da9cd7",
+      "000290_000333": "e78757b7e33f00e2f1aefb33e28ae6252a52aa592afe077c4abc5858ccf2f35e",
+      "000381_000366": "8dba6b85515fabd8824886d4bb748a25745d4591ca67bc15bb57787ce9f33285",
+      "000411_000396": "5da59bc0ca8e72bd133840605b9e1265acbb50dbc7d48a36766068f2c4ee018b",
+      "000418_000403": "ca5a8e80557090488b4cb357034f99a3c8e9ae1d14ad9ae441c43ea0c3b1c3f8",
+      "000430_000419": "4f72859d964f4e274e4c3cce31db01537df1f8cb05e556163728f2bc03c0e112",
+      "000447_000436": "4b26ec33480db3295862f170ce2557345fca66bc34759f721e657f2c5d6f8dec",
+      "000456_000445": "cf5c75d5ef44aaea9f5c2f77b1a09de34ccaa9c3c67fc63241a54e26aa9256d5",
+      "000618_000618": "604a52cf6f1f25391cd36dedde893b917fb6a70fb6152d4358b86d8e1774c251",
+      "000633_000627": "c5421250e381876feac5df3a8acf926b1a37f6b89fb5aea0e35f72b433503d16"
+    }
+  },
+  "size_reduction_percent": 74.76806404889071,
+  "quality_evidence": {
+    "status": "available",
+    "source": "C:\\mlops\\Proyecto04-MLOps\\reports\\p4\\quality\\metrics_val.json",
+    "sha256": "77c8f857c13f4406432f3edc229593ec5c102c79b0f8297b84c5a8dafcd382b3",
+    "samples": 131,
+    "accuracy_original": 0.9618320610687023,
+    "accuracy_int8": 0.9618320610687023,
+    "macro_f1_original": 0.9618231625575566,
+    "macro_f1_int8": 0.9618231625575566,
+    "accuracy_drop_pp": 0.0,
+    "class_disagreements": 0
+  },
+  "latency_raw_csv_sha256": "2870b7485e59d97929d6628d116b152f5c5fc435e1ef626ffe84e5242254ddfd"
+}
