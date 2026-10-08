@@ -61,15 +61,21 @@ python -m edge.tools.generic_resnet18 --setup
 | `crop` | `{center_square: 0.8}` | Cuadrado centrado, 80% del lado menor. También `null` o `{x, y, width, height}` en píxeles |
 | `model.registry` | `../models/edge_registry.json` | El SHA también debe coincidir con `model_sha256` del registro (#6) |
 | `capture.mode` | `manual` | `manual`: Enter captura, `q` sale. `interval`: cada `interval_seconds` (10), Ctrl+C sale |
+| `aws.bucket` | `mlops-p4-edge-captures-222629887955` | Destino del envío (P4-09); `""` = solo local |
+| `aws.profile` | `mlops-p3` | Perfil SSO local que asume `MLOpsP3`; `null` = `AWS_PROFILE` o la cadena por defecto |
+| `aws.region` | `us-east-1` | |
 
 Si la cámara no abre, revisa `python -m edge cameras` y ajusta `camera.name` (o `camera.index`).
 
 ## Uso
 
 ```bash
-python -m edge run                          # modo de la config
+python -m edge run                          # modo de la config; envía cada captura a S3
 python -m edge run --mode interval --count 5
-python -m edge status                       # config, SHA del modelo y último evento
+python -m edge status                       # config, SHA, último evento y estado de envíos
+python -m edge retry <capture_id>           # reenvía el mismo evento de esa captura
+python -m edge retry --pending              # reenvía todas las que no están sent/already_sent
+python -m edge export [--out DIR]           # events_local.csv y events_local.json
 ```
 
 Por captura se escriben en `edge/data/` (ignorada por git):
@@ -79,7 +85,9 @@ Por captura se escriben en `edge/data/` (ignorada por git):
 | `images/{capture_id}.jpg` | Frame completo (`image_key` del evento) |
 | `crops/{capture_id}.jpg` | Región usada para inferir, si hay recorte |
 | `captures.jsonl` | Una línea por captura: `{"event", "image_path", "crop_path"}`. Se escribe al final, así que una línea indica una captura completa |
-| `edge.log` | Arranque (verificación del SHA), capturas y errores |
+| `uploads.jsonl` | Un registro por intento de envío: `{"capture_id", "upload_status", "error", "upload_ms", "bucket", "at"}`. Separado de la inferencia |
+| `edge.log` | Arranque (verificación del SHA), capturas, envíos y errores |
+| `export/` | Salida de `python -m edge export` |
 
 Al reiniciar, la app sigue escribiendo en el mismo log y no repite `capture_id`.
 
@@ -93,6 +101,9 @@ Al reiniciar, la app sigue escribiendo en el mismo log y no repite `capture_id`.
 | `backend.py` | `InferenceBackend` (`load`, `predict(tensor) -> probs`) y la implementación de ONNX Runtime. Otro runtime = otra clase en `BACKENDS` |
 | `pipeline.py` | Una captura: inferencia, evento validado y escritura en disco |
 | `event_validator.py` | Valida el evento contra el contrato v1 |
+| `uploader.py` | Sube imagen y evento a S3 sin duplicar (P4-05) |
+| `sync.py` | Envío en segundo plano, `uploads.jsonl` y reintentos (P4-09) |
+| `export.py` | `edge export`: eventos locales y estado de envío a CSV y JSON |
 
 ## Paridad
 
@@ -123,3 +134,15 @@ No usan cámara, red ni modelos reales: el modelo ONNX diminuto se construye en 
 `edge/uploader.py` sube imagen y luego evento con `If-None-Match: *` y devuelve
 `sent`, `already_sent` o `failed`. Detalles, prueba de doble envío y comandos de
 lectura en [`docs/p4/aws-capturas.md`](../docs/p4/aws-capturas.md).
+
+## Envío desde la app (P4-09)
+
+Con `aws.bucket` configurado, `run` pasa cada captura ya guardada a un hilo de fondo que
+la sube con el uploader; la siguiente captura no espera. Cada intento queda en
+`uploads.jsonl` con `pending` → `sent` / `already_sent` / `failed`, y un fallo se ve en
+consola y en `edge.log` con el comando para reintentar. `retry` reenvía el evento guardado
+en `captures.jsonl`, con el mismo `capture_id`, sin volver a inferir. No hay reenvío
+automático: lo que falló o quedó `pending` se reenvía con `retry --pending`.
+
+Procedimiento de falla y reintento, y evidencia para #9:
+[`docs/p4/integracion-edge-aws.md`](../docs/p4/integracion-edge-aws.md).

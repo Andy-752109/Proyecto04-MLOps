@@ -10,8 +10,9 @@ from pathlib import Path
 from unittest import mock
 
 import boto3
-from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError
+from botocore.exceptions import EndpointConnectionError, NoCredentialsError
 from botocore.stub import ANY, Stubber
+from fixtures import FakeS3
 
 from edge import uploader as uploader_module
 from edge.uploader import Uploader, event_body, event_key
@@ -23,43 +24,6 @@ BUCKET = "mlops-p4-edge-captures-test"
 
 def load_event(name: str = "valid-cat-no-crop.json") -> dict:
     return json.loads((EXAMPLES / name).read_text(encoding="utf-8"))
-
-
-def precondition_failed() -> ClientError:
-    return ClientError(
-        {
-            "Error": {
-                "Code": "PreconditionFailed",
-                "Message": "At least one of the pre-conditions you specified did not hold",
-            },
-            "ResponseMetadata": {"HTTPStatusCode": 412},
-        },
-        "PutObject",
-    )
-
-
-class FakeS3:
-    """S3 mínimo en memoria con la semántica de `If-None-Match: *`."""
-
-    def __init__(self) -> None:
-        self.objects: dict[str, bytes] = {}
-        self.calls: list[str] = []
-        self.fail_next: list[Exception | None] = []
-
-    def put_object(self, *, Bucket, Key, Body, ContentType, IfNoneMatch):
-        self.calls.append(Key)
-        if self.fail_next:
-            error = self.fail_next.pop(0)
-            if error is not None:
-                raise error
-        assert IfNoneMatch == "*"
-        if Key in self.objects:
-            raise precondition_failed()
-        self.objects[Key] = Body
-        return {"ETag": '"etag"'}
-
-    def keys(self, prefix: str) -> list[str]:
-        return [k for k in self.objects if k.startswith(prefix)]
 
 
 class StubberTests(unittest.TestCase):
@@ -187,16 +151,9 @@ class CliTests(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
 
-    def run_cli(self, s3: FakeS3) -> tuple[int, dict]:
+    def run_cli(self, s3: FakeS3, event: Path = EXAMPLES / "valid-cat-no-crop.json") -> tuple:
         out = io.StringIO()
-        args = [
-            "--bucket",
-            BUCKET,
-            "--event",
-            str(EXAMPLES / "valid-cat-no-crop.json"),
-            "--image",
-            str(IMAGE),
-        ]
+        args = ["--bucket", BUCKET, "--event", str(event), "--image", str(IMAGE)]
         with (
             mock.patch.object(uploader_module, "make_s3_client", return_value=s3),
             redirect_stdout(out),
@@ -210,6 +167,34 @@ class CliTests(unittest.TestCase):
         code, second = self.run_cli(s3)
         self.assertEqual((code, second["status"]), (0, "already_sent"))
         self.assertEqual(len(s3.objects), 2)
+
+    def test_cli_bad_event_file_is_failed_not_traceback(self) -> None:
+        # Pendiente de la revisión de #20: el CLI no debe tronar con un traceback.
+        invalid_json = self.tmp / "roto.json"
+        invalid_json.write_text("{no es json", encoding="utf-8")
+        not_object = self.tmp / "lista.json"
+        not_object.write_text("[]", encoding="utf-8")
+        for event in (self.tmp / "no-existe.json", invalid_json, not_object):
+            with self.subTest(event=event.name):
+                s3 = FakeS3()
+                code, result = self.run_cli(s3, event)
+                self.assertEqual((code, result["status"]), (1, "failed"))
+                self.assertTrue(result["error"])
+                self.assertEqual(s3.calls, [])
+
+    def test_cli_client_error_is_failed(self) -> None:
+        out = io.StringIO()
+        args = ["--bucket", BUCKET, "--event", str(EXAMPLES / "valid-cat-no-crop.json")]
+        with (
+            mock.patch.object(
+                uploader_module, "make_s3_client", side_effect=RuntimeError("perfil no existe")
+            ),
+            redirect_stdout(out),
+        ):
+            code = uploader_module.main([*args, "--image", str(IMAGE)])
+        result = json.loads(out.getvalue())
+        self.assertEqual((code, result["status"]), (1, "failed"))
+        self.assertIn("perfil no existe", result["error"])
 
 
 if __name__ == "__main__":
