@@ -27,6 +27,9 @@ class CameraConfig:
     width: int | None = None
     height: int | None = None
     warmup_frames: int = 10
+    # Tiempo mínimo (s) leyendo cuadros antes de cada captura. `grab()` de DirectShow no espera
+    # un cuadro nuevo, así que el cuadro guardado puede ser de la escena anterior.
+    settle_seconds: float = 0.5
     api: str = "auto"  # auto = DirectShow en Windows, el de OpenCV en otro SO
     # Si se define, tiene prioridad sobre `index`: se abre la cámara cuyo nombre DirectShow
     # contiene este texto. El orden de los índices cambia entre arranques en Windows.
@@ -138,6 +141,8 @@ def load_config(path: Path) -> EdgeConfig:
     camera = CameraConfig(**(raw.get("camera") or {}))
     if camera.api not in ("auto", "dshow", "msmf", "v4l2", "any"):
         raise ConfigError("camera.api debe ser auto, dshow, msmf, v4l2 o any")
+    if camera.settle_seconds < 0:
+        raise ConfigError("camera.settle_seconds no puede ser negativo")
     if camera.name is not None and not camera.name.strip():
         raise ConfigError("camera.name no puede estar vacío (usa null para elegir por índice)")
 
