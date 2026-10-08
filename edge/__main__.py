@@ -28,6 +28,7 @@ from edge.sync import (
     BackgroundSender,
     UnknownCaptureError,
     UploadLog,
+    records_by_id,
     retry,
     retry_ids,
     status_of,
@@ -177,6 +178,7 @@ def export_command(config: EdgeConfig, out_dir: Path | None) -> int:
 
 def status(config: EdgeConfig) -> int:
     lines = read_log(config.log_path)
+    records = records_by_id(config)  # una línea sin event.capture_id se omite con un aviso
     model = config.model.path
     print(f"dispositivo : {config.device_id}")
     print(f"modo        : {config.mode} (intervalo {config.interval_seconds:g} s)")
@@ -188,17 +190,19 @@ def status(config: EdgeConfig) -> int:
         print(f"sha256      : {'OK' if ok else 'NO COINCIDE'}")
     else:
         print("sha256      : sin modelo en caché")
-    print(f"capturas    : {len(lines)} en {config.log_path}")
+    incomplete = len(lines) - len(records)
+    note = f" ({incomplete} incompletas, se omiten)" if incomplete else ""
+    print(f"capturas    : {len(lines)} en {config.log_path}{note}")
     if config.aws.enabled:
         print(f"bucket      : {config.aws.bucket}")
         latest = UploadLog(config.upload_log_path).latest()
-        counts = Counter(status_of(latest, line["event"]["capture_id"]) for line in lines)
+        counts = Counter(status_of(latest, cid) for cid in records)
         print("envíos      : " + ", ".join(f"{s} {counts[s]}" for s in STATUSES))
     else:
         print("bucket      : (vacío: solo local)")
         print("envíos      : desactivados; configura aws.bucket para enviar o reintentar")
-    if lines:
-        last = lines[-1]["event"]
+    if records:
+        last = list(records.values())[-1]["event"]
         print(
             f"última      : {last['captured_at']} {last['predicted_class']}"
             f" {last['confidence']:.3f} ({last['capture_id']})"

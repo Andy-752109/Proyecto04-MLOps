@@ -401,6 +401,21 @@ class CliTests(unittest.TestCase):
         self.assertIn("envíos      : desactivados", out)
         self.assertNotIn("pending 1", out)
 
+    def test_status_with_record_without_event(self) -> None:
+        self.cli("run", "--count", "2")
+        log_path = self.tmp / "data" / "captures.jsonl"
+        first, second = read_log(log_path)
+        del second["event"]  # la última línea, la que usa "última"
+        log_path.write_text(json.dumps(first) + "\n" + json.dumps(second) + "\n", "utf-8")
+        with self.assertLogs("edge", level="WARNING") as logs:
+            code, out, _ = self.cli("status")
+        self.assertEqual(code, 0)
+        self.assertTrue(any("línea 2" in line for line in logs.output))
+        self.assertIn("capturas    : 2 en", out)
+        self.assertIn("(1 incompletas, se omiten)", out)
+        self.assertIn("envíos      : pending 0, sent 1, already_sent 0, failed 0", out)
+        self.assertIn(f"({first['event']['capture_id']})", out)
+
     def cli_status_no_bucket(self) -> tuple[int, str, str]:
         self.config_path = write_config(self.tmp, self.config_sha(), aws={"bucket": ""})
         return self.cli("status")
