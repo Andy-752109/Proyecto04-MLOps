@@ -103,7 +103,7 @@ SETUP_CONFIG = EDGE_DIR / "config.yaml"
 
 
 def write_config(config: Path, model: Path, sha256: str) -> None:
-    """Crea `config.yaml` desde el ejemplo (si no existe) y fija el modelo genérico (sin registro)."""
+    """Crea `config.yaml` desde el ejemplo (si no existe) y fija el modelo genérico sin registro."""
     if not config.exists():
         shutil.copyfile(EDGE_DIR / "config.example.yaml", config)
     text = config.read_text(encoding="utf-8")

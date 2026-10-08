@@ -48,6 +48,19 @@ class ModelConfig:
 
 
 @dataclass(frozen=True)
+class AwsConfig:
+    """Destino del envío (P4-09). Sin `bucket` la app solo clasifica y guarda en local."""
+
+    bucket: str = ""
+    profile: str | None = None  # None = cadena por defecto de boto3 (AWS_PROFILE, etc.)
+    region: str = "us-east-1"
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.bucket)
+
+
+@dataclass(frozen=True)
 class EdgeConfig:
     device_id: str
     camera: CameraConfig
@@ -56,11 +69,16 @@ class EdgeConfig:
     mode: str
     interval_seconds: float
     data_dir: Path
-    bucket: str
+    aws: AwsConfig
 
     @property
     def log_path(self) -> Path:
         return self.data_dir / "captures.jsonl"
+
+    @property
+    def upload_log_path(self) -> Path:
+        """Estados de envío, separados del log de inferencia (`captures.jsonl`)."""
+        return self.data_dir / "uploads.jsonl"
 
 
 def _require(section: dict[str, Any], key: str, where: str) -> Any:
@@ -144,5 +162,23 @@ def load_config(path: Path) -> EdgeConfig:
         mode=mode,
         interval_seconds=interval,
         data_dir=_resolve(base, raw.get("data_dir", "data")),
-        bucket=str((raw.get("aws") or {}).get("bucket", "")),
+        aws=_parse_aws(raw.get("aws")),
+    )
+
+
+def _parse_aws(raw: Any) -> AwsConfig:
+    if raw is None:
+        return AwsConfig()
+    if not isinstance(raw, dict):
+        raise ConfigError("aws debe ser un objeto con bucket, profile y region")
+    unknown = set(raw) - {"bucket", "profile", "region"}
+    if unknown:
+        raise ConfigError(f"aws tiene claves desconocidas: {sorted(unknown)}")
+    profile = raw.get("profile")
+    if profile is not None and not str(profile).strip():
+        raise ConfigError("aws.profile no puede estar vacío (usa null para la cadena por defecto)")
+    return AwsConfig(
+        bucket=str(raw.get("bucket") or "").strip(),
+        profile=None if profile is None else str(profile),
+        region=str(raw.get("region") or "us-east-1"),
     )

@@ -1,0 +1,4 @@
+original: accuracy=0.9618320610687023 macro_f1=0.9618231625575566
+optimized: accuracy=0.9618320610687023 macro_f1=0.9618231625575566
+accuracy_drop_pp=0.0
+recompute: coincide con metrics_val.json

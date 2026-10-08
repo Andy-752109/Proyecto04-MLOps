@@ -136,9 +136,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--region", default="us-east-1")
     args = parser.parse_args(argv)
 
-    event = json.loads(args.event.read_text(encoding="utf-8"))
-    uploader = Uploader(args.bucket, make_s3_client(args.profile, args.region))
-    outcome = uploader.upload(event, args.image)
+    try:
+        event = json.loads(args.event.read_text(encoding="utf-8"))
+        if not isinstance(event, dict):
+            raise ValueError("el evento debe ser un objeto JSON")
+    except (OSError, ValueError) as error:  # archivo inexistente, ilegible o JSON inválido
+        outcome = UploadResult("failed", "", 0.0, f"{type(error).__name__}: {error}")
+        print(json.dumps(asdict(outcome), ensure_ascii=False))
+        return 1
+    try:
+        uploader = Uploader(args.bucket, make_s3_client(args.profile, args.region))
+    except Exception as error:  # p. ej. perfil inexistente: mismo formato que un envío fallido
+        outcome = UploadResult("failed", str(event.get("capture_id", "")), 0.0, _describe(error))
+    else:
+        outcome = uploader.upload(event, args.image)
     print(json.dumps(asdict(outcome), ensure_ascii=False))
     return 1 if outcome.status == "failed" else 0
 
