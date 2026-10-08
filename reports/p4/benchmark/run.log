@@ -1,0 +1,5 @@
+inicio: 2026-10-07T22:22:59.6267681-06:00
+commit: 8b83a0173fbd4638231ef8c072be81c902a2dc98
+benchmark completo: reports\p4\benchmark\latency_raw.csv y reports\p4\benchmark\summary.json
+exit code: 0
+fin: 2026-10-07T22:23:09.4845997-06:00
