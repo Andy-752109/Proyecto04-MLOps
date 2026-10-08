@@ -307,6 +307,59 @@ class BenchmarkTests(unittest.TestCase):
             benchmark.quality_evidence(path, "c" * 64, "b" * 64)["status"], "invalid"
         )
 
+    def test_quality_reads_versioned_p4_10_evidence(self) -> None:
+        root = benchmark.ROOT
+        path = root / "reports/p4/quality/metrics_val.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        original_sha = json.loads(
+            (root / "models/registry.json").read_text(encoding="utf-8")
+        )["1.0.0"]["checkpoint_sha256"]
+        optimized_sha = json.loads(
+            (root / "models/edge_registry.json").read_text(encoding="utf-8")
+        )["1.0.0-int8"]["model_sha256"]
+
+        evidence = benchmark.quality_evidence(path, original_sha, optimized_sha)
+
+        self.assertEqual(evidence["status"], "available")
+        self.assertEqual(
+            evidence["sha256"], hashlib.sha256(path.read_bytes()).hexdigest()
+        )
+        self.assertEqual(evidence["samples"], data["rows"])
+        self.assertEqual(evidence["accuracy_original"], data["original"]["accuracy"])
+        self.assertEqual(evidence["accuracy_int8"], data["optimized"]["accuracy"])
+        self.assertEqual(evidence["macro_f1_original"], data["original"]["macro_f1"])
+        self.assertEqual(evidence["macro_f1_int8"], data["optimized"]["macro_f1"])
+        self.assertEqual(evidence["accuracy_drop_pp"], data["accuracy_drop_pp"])
+        self.assertEqual(evidence["class_disagreements"], data["class_disagreements"])
+
+    def test_quality_rejects_invalid_p4_10_json_and_provenance(self) -> None:
+        source = benchmark.ROOT / "reports/p4/quality/metrics_val.json"
+        data = json.loads(source.read_text(encoding="utf-8"))
+        original_sha = json.loads(
+            (benchmark.ROOT / "models/registry.json").read_text(encoding="utf-8")
+        )["1.0.0"]["checkpoint_sha256"]
+        optimized_sha = json.loads(
+            (benchmark.ROOT / "models/edge_registry.json").read_text(encoding="utf-8")
+        )["1.0.0-int8"]["model_sha256"]
+        path = self.tmp / "metrics_val.json"
+
+        path.write_text("{", encoding="utf-8")
+        malformed = benchmark.quality_evidence(path, original_sha, optimized_sha)
+        self.assertEqual(malformed["status"], "invalid")
+        self.assertIn("no se pudo leer", malformed["reason"])
+
+        missing = json.loads(json.dumps(data))
+        del missing["optimized"]["macro_f1"]
+        path.write_text(json.dumps(missing), encoding="utf-8")
+        incomplete = benchmark.quality_evidence(path, original_sha, optimized_sha)
+        self.assertEqual(incomplete["status"], "invalid")
+        self.assertIn("macro_f1", incomplete["reason"])
+
+        path.write_text(json.dumps(data), encoding="utf-8")
+        mismatch = benchmark.quality_evidence(path, "0" * 64, optimized_sha)
+        self.assertEqual(mismatch["status"], "invalid")
+        self.assertIn("modelos", mismatch["reason"])
+
     def test_perf_counter_ns_defines_the_three_durations(self) -> None:
         input_ = benchmark.ReferenceInput(
             "synthetic",
@@ -364,6 +417,8 @@ class BenchmarkTests(unittest.TestCase):
                     str(int8_model),
                     "--threads",
                     "3",
+                    "--quality-json",
+                    str(self.tmp / "missing-metrics.json"),
                     "--output-dir",
                     str(output),
                 ]
@@ -381,6 +436,9 @@ class BenchmarkTests(unittest.TestCase):
         self.assertEqual(report["variants"]["original"]["checkpoint_sha256"], "a" * 64)
         self.assertEqual(report["variants"]["optimized"]["model_sha256"], "b" * 64)
         self.assertEqual(report["quality_evidence"]["status"], "pending")
+        self.assertEqual(
+            report["quality_evidence"]["source"], str(self.tmp / "missing-metrics.json")
+        )
         raw = output / "latency_raw.csv"
         self.assertEqual(
             report["latency_raw_csv_sha256"],
@@ -432,6 +490,8 @@ class BenchmarkTests(unittest.TestCase):
                     str(reference),
                     "--crops",
                     str(crops),
+                    "--quality-json",
+                    str(self.tmp / "missing-metrics.json"),
                     "--output-dir",
                     str(output),
                 ]
