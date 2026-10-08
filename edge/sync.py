@@ -128,6 +128,40 @@ def _failed(capture_id: str, error: str) -> UploadResult:
     return UploadResult("failed", capture_id, 0.0, error)
 
 
+def _record(upload_log: UploadLog, result: UploadResult, bucket: str) -> None:
+    """Registra y reporta sin lanzar: el hilo de envío no debe morir si falla el disco."""
+    try:
+        upload_log.append_result(result, bucket)
+    except Exception as error:  # p. ej. disco lleno: el resultado se reporta igual
+        log.error(
+            "no se pudo registrar el envío %s (%s) en %s: %s: %s",
+            result.capture_id,
+            result.status,
+            upload_log.path,
+            type(error).__name__,
+            error,
+        )
+    _report(result, bucket)
+
+
+def records_by_id(config: EdgeConfig) -> dict[str, dict[str, Any]]:
+    """Registros de `captures.jsonl` por `capture_id`. Una línea sin `event.capture_id` no se
+    puede asociar a ninguna captura: se omite con un aviso en lugar de tumbar el reintento."""
+    records = {}
+    for number, record in enumerate(read_log(config.log_path), start=1):
+        try:
+            records[record["event"]["capture_id"]] = record
+        except (KeyError, TypeError) as error:
+            log.warning(
+                "%s línea %d: registro local incompleto (%s: %s); se omite",
+                config.log_path.name,
+                number,
+                type(error).__name__,
+                error,
+            )
+    return records
+
+
 class BackgroundSender:
     """Sube capturas en un hilo aparte, en orden de captura. `submit` no bloquea."""
 
@@ -176,11 +210,10 @@ class BackgroundSender:
                 return
             event, image = item
             try:
-                result = send(self._get_uploader(), self.upload_log, event, image)
+                result = self._get_uploader().upload(event, image)
             except Exception as error:  # el cliente no se pudo crear: el envío falla, la app sigue
                 result = _failed(event["capture_id"], f"{type(error).__name__}: {error}")
-                self.upload_log.append_result(result, self.aws.bucket)
-                _report(result, self.aws.bucket)
+            _record(self.upload_log, result, self.aws.bucket)
             self.results.append(result)
 
 
@@ -190,7 +223,7 @@ class UnknownCaptureError(KeyError):
 
 def retry_ids(config: EdgeConfig, pending: bool, capture_ids: Iterable[str]) -> list[str]:
     """IDs a reenviar: los pedidos (deben existir) o los que no están `sent`/`already_sent`."""
-    records = {r["event"]["capture_id"]: r for r in read_log(config.log_path)}
+    records = records_by_id(config)
     if pending:
         latest = UploadLog(config.upload_log_path).latest()
         return [cid for cid in records if status_of(latest, cid) not in DONE]
@@ -205,7 +238,7 @@ def retry(
     config: EdgeConfig, capture_ids: Iterable[str], client_factory: ClientFactory | None = None
 ) -> list[UploadResult]:
     """Reenvía el mismo evento de cada captura (sin cola, uno tras otro)."""
-    records = {r["event"]["capture_id"]: r for r in read_log(config.log_path)}
+    records = records_by_id(config)
     upload_log = UploadLog(config.upload_log_path)
     ids = list(capture_ids)
     try:
@@ -214,8 +247,7 @@ def retry(
         message = f"{type(error).__name__}: {error}"
         results = [_failed(cid, message) for cid in ids]
         for result in results:
-            upload_log.append_result(result, config.aws.bucket)
-            _report(result, config.aws.bucket)
+            _record(upload_log, result, config.aws.bucket)
         return results
     results = []
     for cid in ids:
@@ -223,8 +255,7 @@ def retry(
             event, image = records[cid]["event"], image_path(config, records[cid])
         except (KeyError, TypeError) as error:  # registro de captures.jsonl incompleto
             result = _failed(cid, f"registro local incompleto: {type(error).__name__}: {error}")
-            upload_log.append_result(result, config.aws.bucket)
-            _report(result, config.aws.bucket)
+            _record(upload_log, result, config.aws.bucket)
         else:
             result = send(uploader, upload_log, event, image)
         results.append(result)
