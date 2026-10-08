@@ -187,6 +187,68 @@ verificación, conserva sus bytes y la reducción de tamaño. No crea percentile
 completo ficticio; la comparación de latencia sigue pendiente. No publicar un reporte
 `incomplete` como resultado final.
 
+## Resultados oficiales en edge-laptop-01
+
+Karen ejecutó la corrida oficial en `edge-laptop-01` sobre Windows 10, conectada a corriente
+y sin otros programas abiertos según las condiciones registradas en `summary.json`. El equipo
+es un Intel Core i5-7300HQ @ 2.50 GHz con 7.89 GB de RAM reportados por Windows (8 GB
+nominales). **CPU y RAM se consultaron después de la corrida en la misma laptop**; el resumen
+registra el identificador de procesador, pero no el nombre comercial ni la capacidad de RAM.
+
+El runtime registrado fue Python 3.12.10, PyTorch `2.14.0+cpu` y ONNX Runtime `1.30.0`,
+con un hilo intra-op e inter-op de PyTorch y un hilo intra-op de ONNX. Karen reportó además
+`torchvision 0.29.0+cpu` y `CUDA: False` desde la preparación por SSH. El preflight original
+no quedó guardado en `run.log`; Karen conservó y comunicó esta línea de salida:
+
+```text
+Preflight OK: 3.12.10 2.14.0+cpu 0.29.0+cpu 1.30.0 20 recortes
+```
+
+Durante esa preparación también reportó la verificación del SHA-256 del paquete original:
+`bb93a41c8f83a2e42b5f3c337136804f9734687a8ba58360308945347cdfa270`, que
+coincide con `models/registry.json`. Este SHA identifica el paquete; el SHA del checkpoint
+`best.pt` medido figura por separado en `summary.json`.
+
+La corrida completó 10 warmups **excluidos** y 100 mediciones válidas por variante: las mismas
+20 referencias de `reports/p4/reference/parity_reference.csv` repetidas cinco veces. Los
+percentiles siguientes se recalcularon desde `reports/p4/benchmark/latency_raw.csv`, usando
+interpolación lineal con posición `(n-1)×q`:
+
+| Fase | Original p50 (ms) | Original p95 (ms) | INT8 p50 (ms) | INT8 p95 (ms) |
+|---|---:|---:|---:|---:|
+| Preprocesamiento | 0.924100 | 1.326220 | 0.915150 | 1.334705 |
+| Inferencia | 23.168200 | 23.565560 | 7.978600 | 8.183670 |
+| Total local | 24.155000 | 24.727215 | 8.910200 | 9.436275 |
+
+La reducción porcentual de latencia se calcula como
+`100 × (original_ms - int8_ms) / original_ms`: inferencia **65.56 %** en p50 y **65.27 %** en
+p95; total local **63.11 %** en p50 y **61.84 %** en p95. La mejora compara las variantes en
+esta laptop y no incluye cámara, disco, carga de modelos, red ni upload.
+
+| Artefacto | Tamaño |
+|---|---:|
+| Original `best.pt` | 45,304,641 bytes |
+| INT8 `model_int8.onnx` | 11,431,238 bytes |
+
+La reducción de tamaño es **74.76806404889071 %**, calculada como
+`100 × (45,304,641 - 11,431,238) / 45,304,641` y registrada en `summary.json`.
+El SHA-256 del checkpoint original es
+`f759cde23fc314b63c4a4e3c20127ef1eb84121e579b04e7c97911ada20ab7d9`; el del
+ONNX INT8 es `dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392`.
+Ambos coinciden con sus registros versionados.
+
+En los 131 ejemplos de validation de `reports/p4/quality/metrics_val.json`, las dos variantes
+obtuvieron accuracy **0.9618320611** y macro F1 **0.9618231626**. La caída de accuracy fue
+**0 puntos porcentuales** y hubo **0 desacuerdos de clase**. En ese conjunto, la optimización
+INT8 redujo tamaño y latencia sin degradación observable de accuracy o F1; esta conclusión se
+limita a las referencias evaluadas por P4-10.
+
+La evidencia versionada de la corrida está en `reports/p4/benchmark/latency_raw.csv`,
+`reports/p4/benchmark/summary.json` y `reports/p4/benchmark/run.log`. La calidad procede de
+`reports/p4/quality/metrics_val.json`, y las entradas fijas de
+`reports/p4/reference/parity_reference.csv`. `run.log` registra que el benchmark terminó con
+exit code 0; no contiene la salida del preflight por SSH reportada arriba.
+
 ## Recursos ↔ calidad (P4-10, PR #28)
 
 El benchmark no necesita que P4-10 esté integrado. Si existe
@@ -196,29 +258,20 @@ accuracy/F1 macro de ambas variantes, caída en puntos porcentuales y desacuerdo
 Si falta, escribe `status: pending`; si su procedencia no coincide, `status: invalid` sin copiar
 métricas. No hay valores de calidad codificados en el script.
 
-Al redactar la evidencia final, enlazar `metrics_val.json` y `comparison_val.csv` y completar:
-
-| Recurso o calidad | Original P3 | INT8 | Interpretación |
-|---|---:|---:|---|
-| Tamaño en bytes | Desde `summary.json` | Desde `summary.json` | Reducción calculada, no estimada |
-| Preprocess p50/p95 | Desde CSV | Desde CSV | Mismo algoritmo y entradas |
-| Inference p50/p95 | Desde CSV | Desde CSV | PyTorch CPU vs ONNX CPU |
-| Total p50/p95 | Desde CSV | Desde CSV | Sin upload |
-| Accuracy/F1 macro en validation | Desde `metrics_val.json` | Desde `metrics_val.json` | Misma validación de 131 recortes |
-| Diferencias de clase | — | Desde `metrics_val.json` | Separar calidad de latencia |
-
-No trasladar resultados de la laptop donde se midió calidad a la columna de latencia del
-dispositivo edge. La evidencia de P4-10 sirve para interpretar el intercambio, pero no
-reemplaza las mediciones locales de este benchmark.
+Los resultados de calidad de la sección anterior proceden del artefacto versionado de P4-10;
+`reports/p4/quality/comparison_val.csv` ofrece el detalle por ejemplo. La calidad y la
+latencia tienen fuentes distintas: P4-10 evalúa validation y P4-11 mide latencia local en
+`edge-laptop-01` con las 20 referencias fijas.
 
 ## Upload por separado (P4-09, PR #29)
 
-P4-09 registra cada intento en `edge/data/uploads.jsonl`, separado de `captures.jsonl`:
+**P4-09 upload_ms: pendiente de evidencia real versionada.** P4-09 registra cada intento en
+`edge/data/uploads.jsonl`, separado de `captures.jsonl`:
 `capture_id`, `upload_status`, `error`, `upload_ms`, `bucket`, `at`. `upload_ms` abarca validación
 del evento, lectura del JPEG y dos operaciones de S3; **no es solo tiempo de red**. Un
 `sent` después de reintento puede tener la imagen ya subida, así que conservar el estado y
 contexto del intento al citarlo. `edge export` refleja el **último** intento, mientras que
-`uploads.jsonl` conserva todo el historial. Para P4-11 citar una medición real y su
-`capture_id` desde ese log cuando Karen la aporte. No usar el número ilustrativo de la
+`uploads.jsonl` conserva todo el historial. Citar una medición real y su
+`capture_id` desde ese log cuando esté disponible. No usar el número ilustrativo de la
 documentación de P4-09 ni volver a subir objetos solo para este benchmark. Upload nunca se
 incorpora a `total_ms`, p50 o p95 locales.
