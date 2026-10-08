@@ -214,6 +214,41 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.log.latest()[cid]["upload_status"], "failed")
         self.assertEqual(self.s3.calls, [])
 
+    def test_record_without_event_is_failed_not_key_error(self) -> None:
+        broken, good = self.capture(), self.capture()
+        cid = broken.event["capture_id"]
+        first, second = read_log(self.config.log_path)
+        del first["event"]
+        lines = [json.dumps(first), json.dumps(second), "[]"]
+        self.config.log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        with self.assertLogs("edge", level="WARNING") as logs:
+            (result,) = retry(self.config, [cid], self.factory)
+            pending = retry_ids(self.config, True, [])
+        self.assertEqual(result.status, "failed")
+        self.assertIn("registro local incompleto", result.error)
+        self.assertEqual(self.log.latest()[cid]["upload_status"], "failed")
+        self.assertEqual(self.s3.calls, [])
+        self.assertTrue(any("línea 1" in line for line in logs.output))
+        self.assertEqual(pending, [good.event["capture_id"]])
+        with self.assertRaises(UnknownCaptureError):
+            retry_ids(self.config, False, [cid])
+
+    def test_sender_survives_upload_log_failure(self) -> None:
+        captures = [self.capture() for _ in range(2)]
+        factory = mock.Mock(side_effect=RuntimeError("perfil no existe"))
+        sender = BackgroundSender(self.config.aws, self.log, factory)
+        for capture in captures:
+            sender.submit(capture.event, capture.image_path)
+        with (
+            mock.patch.object(self.log, "append_result", side_effect=OSError("disco lleno")),
+            self.assertLogs("edge", level="ERROR") as logs,
+        ):
+            sender.start()
+            self.assertEqual(sender.close(5), 0)  # el hilo sigue vivo y procesa ambas
+        self.assertEqual([r.status for r in sender.results], ["failed", "failed"])
+        self.assertTrue(any("disco lleno" in line for line in logs.output))
+        self.assertTrue(any("perfil no existe" in line for line in logs.output))
+
     def test_upload_log_rejects_unknown_status(self) -> None:
         with self.assertRaises(ValueError):
             self.log.append("x", "enviado", BUCKET)
