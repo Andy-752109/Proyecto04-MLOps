@@ -16,22 +16,114 @@ estática INT8 QDQ por canal. Ambos reciben el mismo tensor de entrada RGB float
 
 ## Preparación en la laptop edge
 
-1. Usar Python 3.12 de 64 bits. Instalar `edge/requirements.txt` (incluye
-   `onnxruntime==1.30.0`) y PyTorch CPU `2.14.0` + torchvision CPU `0.29.0` del entorno `ml`
-   de `app/pyproject.toml`. Confirmar que importan ambas bibliotecas. ONNX Runtime en Windows
-   requiere Microsoft Visual C++ Redistributable x64, según `decision-runtime.md`.
-2. Tener el paquete original verificado en `eval_v1.0.0/`: `config.json`, `class_map.json` y
-   `artifacts/checkpoint/best.pt`. `app/verify_reload.py --version 1.0.0` lo obtiene por
-   `VersionId` y verifica el SHA del paquete. El benchmark verifica de nuevo el SHA del
-   checkpoint contra `models/registry.json` y `reports/selection.json`.
-3. Tener `edge/models/model_int8.onnx` obtenido según `models/edge_registry.json`. El benchmark
-   verifica su `model_sha256` y que deriva del checkpoint original. Los binarios no entran a Git.
-4. Materializar los 20 JPEG indicados por `reports/p4/reference/parity_reference.csv` bajo
-   `data/derived/crops/images/`. Son referencias de **validation**, diez por clase; no usar
-   `calibration_ids.csv`, que pertenece a train. El script valida el conjunto fijo, carga los
-   20 JPEG antes de cronometrar y registra el SHA-256 de cada uno.
-5. Comprobar alimentación y cerrar otros programas. Verificar que el directorio de salida aún
-   no contiene `latency_raw.csv` ni `summary.json`: el script no sobrescribe evidencia anterior.
+Todos los bloques PowerShell siguientes se ejecutan **desde la raíz del checkout** en Windows 10,
+con Python 3.12 de 64 bits. La raíz debe contener `app/`, `edge/`, `models/` y `reports/`;
+ejecutar allí `python -m edge.benchmark` permite importar
+`from app.edge_model.baseline import ...` sin modificar `PYTHONPATH`. Preparar modelos y datos
+con red antes de medir. ONNX Runtime en Windows requiere Microsoft Visual C++ Redistributable
+x64, según `decision-runtime.md`.
+
+1. Instalar las dependencias edge y **PyTorch CPU** en el Python que ejecutará el benchmark.
+   Las versiones están fijadas en `app/pyproject.toml`; el índice CPU evita instalar una
+   variante CUDA. La salida esperada es `2.14.0+cpu`, `0.29.0+cpu` y `CUDA: False`.
+
+   ```powershell
+   python -m pip install -r edge/requirements.txt
+   python -m pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cpu
+   python -c "import torch, torchvision; print('torch:', torch.__version__); print('torchvision:', torchvision.__version__); print('CUDA:', torch.cuda.is_available())"
+   ```
+
+2. Iniciar SSO y recuperar el paquete original de
+   `s3://mlops-p3-models-222629887955/models/releases/v1.0.0/model_release_v1.0.0.tar.gz`.
+   `app/verify_reload.py` lee `models/registry.json`, descarga exactamente el `VersionId`
+   `V8H6fouL5HiaUvrxAz1gUI5RbRD008VH`, verifica el SHA-256 del tar y lo extrae en la raíz
+   como `eval_v1.0.0/`. Su entorno `app/.venv` es independiente del Python del benchmark.
+
+   ```powershell
+   aws sso login --profile mlops-p3
+   if ($LASTEXITCODE -ne 0) { throw 'Falló el inicio de sesión SSO' }
+   Push-Location app
+   uv sync --locked --no-build
+   if ($LASTEXITCODE -ne 0) { throw 'Falló la preparación de app/.venv' }
+   uv run python verify_reload.py --version 1.0.0 --profile mlops-p3
+   if ($LASTEXITCODE -ne 0) { throw 'Falló la verificación del paquete original' }
+   Pop-Location
+   if (-not (Test-Path 'eval_v1.0.0/artifacts/checkpoint/best.pt' -PathType Leaf)) { throw 'Falta eval_v1.0.0/artifacts/checkpoint/best.pt' }
+   ```
+
+   El paquete también debe contener `config.json` y `class_map.json`. El benchmark vuelve a
+   verificar el SHA de `best.pt` contra `models/registry.json` y `reports/selection.json`.
+
+3. Materializar los recortes mediante el flujo DVC documentado para un clon limpio: descargar
+   los datos fuente del remote `prod` y reproducir la etapa `crops` de `dvc.yaml`. El perfil
+   se configura **solo localmente** en `.dvc/config.local`. Los 20 paths de
+   `parity_reference.csv` son relativos a `data/derived/crops/`; son recortes de validation,
+   no los IDs de calibración de train.
+
+   ```powershell
+   py -3.12 -m venv .venv-dvc
+   .venv-dvc\Scripts\Activate.ps1
+   python -m pip install 'dvc[s3]==3.67.1'
+   dvc remote modify --local prod profile mlops-p3
+   dvc pull -r prod data/raw/images.dvc data/raw/annotations.dvc
+   if ($LASTEXITCODE -ne 0) { throw 'Falló la descarga DVC de datos fuente' }
+   dvc repro crops
+   if ($LASTEXITCODE -ne 0) { throw 'Falló la etapa DVC crops' }
+   if (-not (Test-Path 'data/derived/crops/images' -PathType Container)) { throw 'Falta data/derived/crops/images' }
+   deactivate
+   ```
+
+   `dvc repro crops` ejecuta `app/dvc_crops_stage.py` mediante `uv` y el entorno `app/.venv`
+   preparado en el paso anterior. El benchmark carga los 20 JPEG antes de cronometrar y
+   registra el SHA-256 de cada uno.
+
+4. Descargar `s3://mlops-p3-models-222629887955/models/edge/1.0.0-int8/model_int8.onnx`
+   **por el VersionId del archivo ONNX**, distinto del VersionId del paquete, conforme a
+   `models/edge_registry.json` y `edge/README.md`. El benchmark verifica `model_sha256` y
+   su relación con el checkpoint original. Los binarios no entran a Git.
+
+   ```powershell
+   New-Item -ItemType Directory -Force edge/models | Out-Null
+   aws s3api get-object --bucket mlops-p3-models-222629887955 --key models/edge/1.0.0-int8/model_int8.onnx --version-id 8xfGLRI8Mlq07SyM9hsODKBfuC1c24ig --profile mlops-p3 edge/models/model_int8.onnx
+   if ($LASTEXITCODE -ne 0) { throw 'Falló la descarga del modelo INT8' }
+   if (-not (Test-Path 'edge/models/model_int8.onnx' -PathType Leaf)) { throw 'Falta edge/models/model_int8.onnx' }
+   ```
+
+5. Ejecutar este **preflight desde la raíz**, ya fuera de `.venv-dvc`, con el mismo `python`
+   que usará el benchmark. Termina con error si faltan dependencias, archivos o alguno de los
+   20 recortes fijos.
+
+   ```powershell
+   @'
+   import csv
+   import platform
+   import sys
+   from pathlib import Path
+   import torch
+   import torchvision
+   import onnxruntime
+   from app.edge_model.baseline import load_package
+
+   assert sys.version_info[:2] == (3, 12) and platform.architecture()[0] == '64bit', 'Se requiere Python 3.12 de 64 bits'
+   assert torch.__version__ == '2.14.0+cpu', f'torch CPU inesperado: {torch.__version__}'
+   assert torchvision.__version__ == '0.29.0+cpu', f'torchvision CPU inesperado: {torchvision.__version__}'
+   assert not torch.cuda.is_available(), 'CUDA debe estar deshabilitado'
+   assert onnxruntime.__version__ == '1.30.0', f'onnxruntime inesperado: {onnxruntime.__version__}'
+   for path in (Path('eval_v1.0.0/artifacts/checkpoint/best.pt'), Path('edge/models/model_int8.onnx'), Path('reports/p4/reference/parity_reference.csv')):
+       assert path.is_file(), f'Falta {path}'
+   crops = Path('data/derived/crops')
+   assert crops.is_dir(), f'Falta {crops}'
+   with Path('reports/p4/reference/parity_reference.csv').open(newline='', encoding='utf-8') as f:
+       paths = [crops / row['path'] for row in csv.DictReader(f)]
+   assert len(paths) == 20, f'Se esperaban 20 referencias, hay {len(paths)}'
+   missing = [str(path) for path in paths if not path.is_file()]
+   assert not missing, f'Faltan recortes: {missing}'
+   print('Preflight OK:', sys.version.split()[0], torch.__version__, torchvision.__version__, onnxruntime.__version__, len(paths), 'recortes')
+   '@ | python -
+   ```
+
+6. Conectar la laptop a corriente, cerrar otros programas y comprobar que la salida aún no
+   contiene `latency_raw.csv` ni `summary.json`: el script no sobrescribe evidencia anterior.
 
 Desde la raíz del repositorio, en PowerShell, ejecutar en **una sola línea**:
 
