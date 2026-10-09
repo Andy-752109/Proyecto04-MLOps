@@ -25,9 +25,9 @@ Revisor sugerido: Karen o Ale. Registrar una ejecución real en la sección sigu
 
 | Campo | Registro |
 |---|---|
-| Fecha y hora (zona) | Jueves 8 de octubre de 2026, 19:30, hora del centro de México (UTC−6; 2026-10-09 01:30 UTC) |
+| Fecha y hora (zona) | 8 de octubre de 2026, antes de las 21:06, hora del centro de México (hora de su [registro](https://github.com/Andy-752109/Proyecto04-MLOps/pull/35#issuecomment-6073416756); el commit probado es de las 19:46) |
 | Persona que revisa | Karen |
-| Sistema operativo y versión | Microsoft Windows 10 Home Single Language |
+| Sistema operativo y versión | macOS, en la Mac de Karen (no en la laptop edge) |
 | Commit probado (`git rev-parse HEAD`) | `26841f1` (rama `p4-13-evidencias-entrega`) |
 | Pasos seguidos y diferencias frente al checklist | Clon nuevo del PR, todo levantado desde cero con la caché de Docker vacía y sin `.env` previo |
 | Resultado global PASS/FAIL | PASS: funciona |

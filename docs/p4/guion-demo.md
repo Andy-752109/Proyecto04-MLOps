@@ -1,6 +1,16 @@
 # Guion de demostración P4 (10–15 minutos)
 
-Guion propuesto; **no registra un ensayo realizado**. Reparto sugerido: Karen opera la laptop edge y Heri presenta evidencias, S3 y portal. Confirmar responsables con el equipo. Si falla una prueba en vivo, indicar que se cambia a **evidencia previamente registrada** y no presentar esa evidencia como una ejecución nueva.
+Guion ensayado el 8 de octubre (ver [Ensayo realizado](#ensayo-realizado)). Reparto sugerido: Karen opera la laptop edge y Heri presenta evidencias, S3 y portal. Confirmar responsables con el equipo. Si falla una prueba en vivo, indicar que se cambia a **evidencia previamente registrada** y no presentar esa evidencia como una ejecución nueva.
+
+## Ensayo realizado
+
+| Campo | Registro |
+|---|---|
+| Fecha | Jueves 8 de octubre de 2026 |
+| Participantes | Karen y Ale; la PM estuvo presente como observadora |
+| Equipos | Mac de Karen para el portal; `edge-laptop-01` con la cámara `GENERAL WEBCAM` |
+| Duración aproximada | 20 minutos |
+| Incidencias y ajustes | Sin fallas de operación. El modelo asignó la clase contraria a 2 fotos; se dejan visibles como errores reales del clasificador. Las fotos se mostraron a la cámara desde una pantalla, no impresas; la PM lo aceptó |
 
 ## Preparación antes de iniciar el cronómetro
 
