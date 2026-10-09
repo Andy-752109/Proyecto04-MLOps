@@ -1,4 +1,97 @@
-# Portal de anotación de imágenes
+# Proyecto04-MLOps
+
+## Proyecto 4 — Clasificación en Edge
+
+P4 lleva el clasificador `cat`/`dog` de P3 (`1.0.0`, PyTorch) a una laptop Windows 10 con cámara USB. Convierte el checkpoint a ONNX FP32, verifica paridad y aplica cuantización estática INT8 QDQ por canal (`1.0.0-int8`). La cámara y la inferencia funcionan localmente; cada captura guarda fotografía y evento antes de intentar el envío asíncrono a S3. `ml-api` lee los eventos de S3 y el portal los muestra en **Capturas Edge**.
+
+### Requisitos y preparación desde un clon limpio
+
+En la laptop `edge-laptop-01`: Windows 10 de 64 bits, Python 3.12 de 64 bits, cámara USB `GENERAL WEBCAM`, Git, AWS CLI v2 y acceso SSO al perfil local `mlops-p3`. ONNX Runtime 1.30.0 necesita Microsoft Visual C++ Redistributable x64; véase [decisión de runtime](docs/p4/decision-runtime.md). Para recuperar y convertir el original también se necesitan `uv` y DVC 3.67.1 con S3. En la computadora que abre el portal se necesitan Docker Desktop y Compose, el perfil SSO y las variables locales de [`.env.example`](.env.example). No se necesitan claves AWS permanentes.
+
+En PowerShell, clona el repositorio y prepara la laptop desde su raíz:
+
+```powershell
+git clone https://github.com/Andy-752109/Proyecto04-MLOps.git
+Set-Location Proyecto04-MLOps
+python -m pip install -r edge/requirements.txt
+Copy-Item edge/config.example.yaml edge/config.yaml
+New-Item -ItemType Directory -Force edge/models | Out-Null
+aws sso login --profile mlops-p3
+aws sts get-caller-identity --profile mlops-p3
+python -m edge cameras
+```
+
+Confirma que la identidad tenga el rol `MLOpsP3`. Revisa `camera.name` en `edge/config.yaml` contra la salida de `cameras`; usa `camera.index` solo con `name: null`. `model.path`, `model.version`, `model.sha256` y `model.registry` deben corresponder a [`models/edge_registry.json`](models/edge_registry.json). El archivo local está ignorado por Git. El bucket y el perfil de `aws` ya están declarados en la plantilla. Para trabajar sin envío configura `aws.bucket: ""`; las capturas se seguirán guardando en `edge/data/`.
+
+### Modelos P3 e INT8
+
+El original versionado en S3 se recupera y verifica con el comando existente de P3. Desde la raíz, en PowerShell:
+
+```powershell
+Push-Location app
+uv sync --locked --no-build
+uv run python verify_reload.py --version 1.0.0 --profile mlops-p3
+Pop-Location
+```
+
+Queda en `eval_v1.0.0/artifacts/checkpoint/best.pt`. Para obtener la variante publicada, usa la ruta y `VersionId` de [`models/edge_registry.json`](models/edge_registry.json):
+
+```powershell
+aws s3api get-object --bucket mlops-p3-models-222629887955 --key models/edge/1.0.0-int8/model_int8.onnx --version-id 8xfGLRI8Mlq07SyM9hsODKBfuC1c24ig --profile mlops-p3 edge/models/model_int8.onnx
+python -m edge status
+```
+
+`status` debe indicar `sha256: OK` antes de abrir la cámara; este comando compara con `edge/config.yaml`. Al iniciar `run`, la app también coteja el SHA con `models/edge_registry.json`.
+
+Para **reproducir la conversión** desde un clon limpio, recupera las salidas cacheadas de las etapas `crops` y `manifest` desde el remote DVC `prod`. El perfil se guarda solo en `.dvc/config.local`; `manifest` contiene el CSV que necesita `edge_model.convert`. Desde la raíz, en PowerShell:
+
+```powershell
+uvx --python 3.12 --from 'dvc[s3]==3.67.1' dvc remote modify --local prod profile mlops-p3
+uvx --python 3.12 --from 'dvc[s3]==3.67.1' dvc pull -r prod crops
+uvx --python 3.12 --from 'dvc[s3]==3.67.1' dvc pull -r prod manifest
+if (-not (Test-Path 'data/derived/crops/images' -PathType Container)) { throw 'Faltan los recortes DVC' }
+if (-not (Test-Path 'data/derived/manifests/v0.1.1/manifest.csv' -PathType Leaf)) { throw 'Falta el manifiesto DVC v0.1.1' }
+Push-Location app
+uv run --group ml python -m edge_model.convert
+Pop-Location
+```
+
+Estas etapas y la salida `v0.1.1` figuran en `dvc.yaml` y `dvc.lock`. La conversión genera ONNX FP32, verifica paridad y cuantiza a INT8; deja binarios en `build/edge/` (ignorado por Git). La [procedencia P3](docs/p4/modelo-origen.md) y las [evidencias de conversión](reports/p4/conversion/conversion_log.json) permiten verificar la cadena sin repetirla. La [preparación del benchmark](docs/p4/benchmark.md#preparación-en-la-laptop-edge) detalla los requisitos del entorno y de los recortes, pero ese benchmark no necesita descargar el manifiesto.
+
+### Capturar, clasificar y sincronizar
+
+Desde la raíz, con la cámara conectada:
+
+```powershell
+python -m edge run
+python -m edge status
+```
+
+En modo manual, Enter captura y `q` sale. `run` ocupa esa terminal; ejecuta `status` en otra terminal o después de salir. Cada imagen completa, recorte, evento y estado de envío queda bajo `edge/data/` (véase [manual edge](edge/README.md)). La inferencia no espera la red. Si se corta WiFi, el evento se conserva localmente y el intento aparece como `failed`; cuando vuelva la red y el SSO esté vigente, `python -m edge retry --pending` reenvía los mismos IDs. `python -m edge retry <capture_id>` permite comprobar un caso; un segundo envío devuelve `already_sent`. El contrato fija `edge-captures/v1/images/{capture_id}.jpg` y `edge-captures/v1/events/{capture_id}.json` en el bucket `mlops-p4-edge-captures-222629887955` ([AWS](docs/p4/aws-capturas.md), [contrato](docs/p4/contrato-evento-edge.md)).
+
+### Abrir Capturas Edge y verificar una captura
+
+En la computadora de desarrollo, desde la raíz del clon, configura `.env` a partir de `.env.example` con valores **locales** para MariaDB y MinIO y `AWS_PROFILE=mlops-p3`. Inicia SSO en esa computadora y después los servicios:
+
+```powershell
+Copy-Item .env.example .env
+aws sso login --profile mlops-p3
+docker compose up -d --build frontend ml-api
+```
+
+Abre `http://localhost:8080/edge/captures`. El portal consulta `GET /ml-api/edge/captures` mediante `ml-api`, que lee el bucket configurado por `EDGE_CAPTURES_BUCKET` en Compose. Busca el mismo `capture_id` de `python -m edge status` o de `edge/data/captures.jsonl`. Para verificar S3 en modo lectura, sustituye el marcador por un UUID real; nunca publiques la respuesta completa de la API, que contiene URLs prefirmadas:
+
+```powershell
+$CaptureId = '<capture_id>'
+aws s3 cp "s3://mlops-p4-edge-captures-222629887955/edge-captures/v1/events/${CaptureId}.json" - --profile mlops-p3
+aws s3api head-object --bucket mlops-p4-edge-captures-222629887955 --key "edge-captures/v1/images/${CaptureId}.jpg" --profile mlops-p3
+$PortalCapture = (Invoke-RestMethod -Uri 'http://localhost:8080/ml-api/edge/captures?limit=100').items | Where-Object { $_.capture_id -eq $CaptureId }
+$PortalCapture | Select-Object capture_id,predicted_class,confidence,captured_at,device_id,model_version,image_key
+```
+
+Compara `capture_id`, `predicted_class`, `confidence`, `captured_at`, `device_id`, `model_version` e `image_key` del JSON S3 con el evento local y la fila seleccionada de la API; la tarjeta del portal muestra la clase, confianza, fecha, dispositivo, versión y fotografía del mismo ID. La clave `image_key` se comprueba en el JSON y la respuesta filtrada de la API, pues no se imprime como texto en la tarjeta. `head-object` solo confirma la existencia de la fotografía. Si no aparece el ID entre los 100 resultados más recientes, no lo interpretes como pérdida del objeto: consulta la evidencia registrada. La [trazabilidad E2E registrada](reports/p4/operation/trazabilidad.md) muestra cinco ejemplos. Si falla la cámara, ejecuta `python -m edge cameras` y corrige `camera.name`; si falla el modelo, comprueba `status`, descarga y SHA; si falla S3, renueva SSO, revisa bucket/permisos y usa `retry --pending`; si falla el portal, comprueba `docker compose logs ml-api frontend` y el perfil SSO de esa computadora. Más detalle en [integración AWS](docs/p4/integracion-edge-aws.md), [validación E2E](docs/p4/validacion-e2e.md), [ficha de entrega](docs/p4/ficha-entrega.md), [guion de demo](docs/p4/guion-demo.md) e [índice de evidencias](reports/p4/README.md).
+
+## Portal y documentación heredada de P1–P3
 
 Monolito para subir, anotar y exportar un dataset de detección de objetos.
 Las imágenes se almacenan en MinIO; los metadatos y las anotaciones en MariaDB.
@@ -71,8 +164,8 @@ este proyecto usa IAM Identity Center / SSO con tu propia identidad.
 ### 2. Clonar el repositorio
 
 ```bash
-git clone https://github.com/karenelizabg/proyecto-fase3-MLOPS.git
-cd proyecto-fase3-MLOPS
+git clone https://github.com/Andy-752109/Proyecto04-MLOps.git
+cd Proyecto04-MLOps
 git status
 ```
 
@@ -263,8 +356,10 @@ y los límites operativos.
 
 ### 12. Variables locales y seguridad
 
-El `.env` de la raíz es para configuración local de Compose/MinIO/Copilot. No
-coloques credenciales AWS, passwords, sesiones SSO ni access keys en `.env`.
+El `.env` de la raíz es para configuración local de Compose/MinIO/Copilot y
+requiere contraseñas **locales** para MariaDB y MinIO. No lo versiones. Nunca
+coloques credenciales AWS, tokens, sesiones SSO ni access keys en `.env`:
+AWS se autentica con el perfil SSO `mlops-p3`. Tampoco publiques URLs prefirmadas.
 `ANTHROPIC_API_KEY` es opcional y solo se necesita para utilizar el chat
 Copilot; nunca pongas una API key real en esta documentación.
 
@@ -303,7 +398,7 @@ arrancar; no crea imágenes demo ni hace falta ejecutar otro paso manual.
 |-----------------|-----------------------------------|
 | Frontend        | http://localhost:8080            |
 | Backend (API)   | http://localhost:3100            |
-| Consola MinIO   | http://localhost:9001 (minioadmin/minioadmin) |
+| Consola MinIO   | http://localhost:9001 (usuario y contraseña locales de `.env`) |
 
 Para apagar normalmente los servicios, sin borrar los datos persistidos:
 
@@ -314,29 +409,30 @@ docker compose down
 `docker compose down -v` elimina también los volúmenes de MariaDB y MinIO.
 Úsalo únicamente cuando quieras reiniciar desde cero los datos locales.
 
-Las credenciales de MariaDB/MinIO usadas en `docker-compose.yml` son las de
-desarrollo del proyecto; para un despliegue real, cámbialas ahí antes de
-publicar los puertos a una red no confiable.
+Las credenciales locales de MariaDB/MinIO se configuran en `.env`, que está
+ignorado por Git. Usa valores propios; nunca publiques ese archivo.
 
 ## Desarrollo local sin Docker para las apps
 
 Para iterar con hot reload en backend y frontend, puedes levantar solo la
 infraestructura con Docker y correr los paquetes Node directamente en tu
-máquina:
+máquina. En los ejemplos siguientes, reemplaza los marcadores
+`REPLACE_WITH_*` por valores locales propios antes de ejecutar los comandos;
+usa los mismos valores en `backend/.env`:
 
 ### 1. Infraestructura
 
 ```bash
 docker run --name proyecto1-mariadb \
-  -e MARIADB_ROOT_PASSWORD=password \
+  -e MARIADB_ROOT_PASSWORD='REPLACE_WITH_LOCAL_DB_PASSWORD' \
   -e MARIADB_DATABASE=image_repo \
   -p 3306:3306 -d mariadb:11
 
 docker run --name proyecto1-minio \
   -p 9000:9000 -p 9001:9001 \
-  -e MINIO_ROOT_USER=minioadmin \
-  -e MINIO_ROOT_PASSWORD=minioadmin \
-  -d quay.io/minio/minio server /data --console-address ":9001"
+  -e MINIO_ROOT_USER='REPLACE_WITH_LOCAL_MINIO_USER' \
+  -e MINIO_ROOT_PASSWORD='REPLACE_WITH_LOCAL_MINIO_PASSWORD' \
+  -d minio/minio:latest server /data --console-address ":9001"
 ```
 
 El bucket se crea automáticamente al arrancar el backend.
@@ -348,12 +444,12 @@ desarrollo siguiente. Este archivo es distinto del `.env` de la raíz que usa
 Docker Compose:
 
 ```dotenv
-DATABASE_URL=mysql://root:password@localhost:3306/image_repo
+DATABASE_URL=mysql://root:REPLACE_WITH_LOCAL_DB_PASSWORD@localhost:3306/image_repo
 MINIO_ENDPOINT=localhost
 MINIO_PORT=9000
 MINIO_USE_SSL=false
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
+MINIO_ACCESS_KEY=REPLACE_WITH_LOCAL_MINIO_USER
+MINIO_SECRET_KEY=REPLACE_WITH_LOCAL_MINIO_PASSWORD
 MINIO_BUCKET=image-annotations
 MAX_UPLOAD_SIZE_BYTES=5242880
 ```
