@@ -21,18 +21,18 @@ Revisor sugerido: Karen o Ale. Registrar una ejecución real en la sección sigu
 
 ## Revisión realmente ejecutada
 
-**Estado:** pendiente. Completar solo después de una prueba efectuada por Karen o Ale.
+**Estado:** ejecutada por Karen ([registro](https://github.com/Andy-752109/Proyecto04-MLOps/pull/35#issuecomment-6073416756)).
 
 | Campo | Registro |
 |---|---|
-| Fecha y hora (zona) | Pendiente |
-| Persona que revisa | Pendiente |
-| Sistema operativo y versión | Pendiente |
-| Commit probado (`git rev-parse HEAD`) | Pendiente |
-| Pasos seguidos y diferencias frente al checklist | Pendiente |
-| Resultado global PASS/FAIL | Pendiente |
-| Errores encontrados y evidencia | Pendiente |
-| Correcciones aplicadas o propuestas | Pendiente |
-| Conclusión y firma/confirmación | Pendiente |
+| Fecha y hora (zona) | Jueves 8 de octubre de 2026, 19:30, hora del centro de México (UTC−6; 2026-10-09 01:30 UTC) |
+| Persona que revisa | Karen |
+| Sistema operativo y versión | Microsoft Windows 10 Home Single Language |
+| Commit probado (`git rev-parse HEAD`) | `26841f1` (rama `p4-13-evidencias-entrega`) |
+| Pasos seguidos y diferencias frente al checklist | Clon nuevo del PR, todo levantado desde cero con la caché de Docker vacía y sin `.env` previo |
+| Resultado global PASS/FAIL | PASS: funciona |
+| Errores encontrados y evidencia | Ninguno reportado |
+| Correcciones aplicadas o propuestas | Ninguna |
+| Conclusión y firma/confirmación | Karen confirma en el [PR #35](https://github.com/Andy-752109/Proyecto04-MLOps/pull/35#issuecomment-6073416756) que el proyecto se levanta y funciona desde un clon limpio |
 
 La revisión no debe inferirse de los tests automatizados ni de la corrida P4-12: requiere un clon nuevo y un registro de la persona revisora.

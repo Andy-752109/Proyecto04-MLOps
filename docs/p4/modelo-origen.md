@@ -8,7 +8,7 @@ se reentrenó ni se volvió a correr `final.py --split test`.
 
 | Dato | Valor |
 |---|---|
-| Repositorio P3 | `proyecto-fase3-MLOPS` (base de este repo; `main` sin historial) |
+| Repositorio P3 | [`proyecto-fase3-MLOPS`](https://github.com/karenelizabg/proyecto-fase3-MLOPS) (base de este repo; `main` sin historial) |
 | Versión del modelo | `1.0.0` (`model_release` v1.0.0, `run_kind=campaign`, fila de rejilla `r02`) |
 | `run_id` (MLflow) | `7e7b4a4b35464cfebb6b41714a3ad931` |
 | Release de datos | `v0.1.1` |

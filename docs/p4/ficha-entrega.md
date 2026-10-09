@@ -4,12 +4,12 @@
 
 Trasladar el clasificador P3 de gatos y perros a una laptop con cámara, clasificar sin depender de la red y sincronizar fotografía y evento a AWS para consulta desde Capturas Edge.
 
-| Integrante | Responsabilidad comprobable en el repositorio | Pendiente de confirmar |
-|---|---|---|
-| Heri | Documentación y evidencias P4-13 (issue #13) | Alcance exacto de su rol durante la demo |
-| Karen | Corrida oficial del benchmark P4-11 en `edge-laptop-01` ([registro](benchmark.md)) | Rol en la demo y revisión desde clon limpio |
-| Ale | Revisión desde clon limpio propuesta por P4-13 | Participación efectiva y otras responsabilidades |
-| PM/equipo | Fotografías y validación de P4-12 ([acta](validacion-e2e.md)) | Confirmar que las 20 fotos no están en el dataset |
+| Integrante | Responsabilidad |
+|---|---|
+| Karen | Modelo de origen (#1), decisión de hardware y runtime (#3), variante INT8 (#4), bucket AWS (#5), comparación de calidad (#10), corrida del benchmark y validación E2E en la laptop (#11, #12) |
+| Ale | Uploader a S3 (#5), app edge (#6), integración AWS y reintentos (#9) |
+| Heri | Contrato del evento y convención de nombres (#2), API (#7), Capturas Edge (#8), script del benchmark (#11), documentación (#13) |
+| PM | Planeación y coordinación, aprobación de PRs, fotografías y verificación de evidencias |
 
 ## Dispositivo y software
 
@@ -32,6 +32,7 @@ Trasladar el clasificador P3 de gatos y perros a una laptop con cámara, clasifi
 | Tamaño | Original 45,304,641 bytes; INT8 11,431,238 bytes; reducción 74.76806404889071 % ([benchmark](../../reports/p4/benchmark/summary.json)) |
 | Calidad val | 131 muestras; accuracy original e INT8 0.9618320610687023; F1 macro en ambos 0.9618231625575566; caída de accuracy 0 pp; 0 desacuerdos de clase ([métricas](../../reports/p4/quality/metrics_val.json)) |
 | Latencia total | Original p50 24.155000 ms, p95 24.727215 ms; INT8 p50 8.910200 ms, p95 9.436275 ms. Incluye preprocesamiento e inferencia, excluye cámara, disco y red ([CSV](../../reports/p4/benchmark/latency_raw.csv), [protocolo](benchmark.md)) |
+| Tiempo de subida (aparte) | 57 envíos `sent` de P4-12: p50 1,814 ms, p95 4,521 ms (mín. 565, máx. 6,076); en la prueba de fallo y reintento de P4-09, 2,782 ms. Incluye validación del evento, lectura del JPEG y las dos operaciones de S3; no se suma a la latencia local ([uploads.jsonl](../../reports/p4/operation/uploads.jsonl), [benchmark](benchmark.md#upload-por-separado-p4-09-pr-29), [evidencia #9](https://github.com/Andy-752109/Proyecto04-MLOps/issues/9#issuecomment-6071641928)) |
 
 ## AWS, evento y portal
 
@@ -41,12 +42,10 @@ Para abrir el portal desde la computadora de desarrollo, prepara `.env` local se
 
 ## Validación E2E y evidencias
 
-El [ensayo P4-12 del jueves 8](validacion-e2e.md) registra 57 IDs locales únicos y 57 eventos S3 con contenido igual al local. El [resumen generado](../../reports/p4/operation/resumen.md) reporta metadatos coincidentes para los 57 en el portal, aunque no se versionó la respuesta cruda de la API; hay [cinco IDs trazados](../../reports/p4/operation/trazabilidad.md) y una captura de pantalla. Dentro del ensayo, 20 fotos etiquetadas (10 `cat`, 10 `dog`) dieron 18 aciertos y 2 errores, y una secuencia de 31 capturas duró 5 min 26 s. Se documentaron corte de red, reintentos, un segundo intento `already_sent` y reinicio. La corrida final del viernes 9 queda para verificación del PM. [Índice de evidencias](../../reports/p4/README.md) y [guion de demo](guion-demo.md).
+La [corrida final P4-12 del 8 de octubre](validacion-e2e.md), verificada en vivo por la PM, registra 57 IDs locales únicos y 57 eventos S3 con contenido igual al local. El [resumen generado](../../reports/p4/operation/resumen.md) reporta metadatos coincidentes para los 57 en el portal, aunque no se versionó la respuesta cruda de la API; hay [cinco IDs trazados](../../reports/p4/operation/trazabilidad.md) y una captura de pantalla. En la corrida, 20 fotos etiquetadas (10 `cat`, 10 `dog`) dieron 18 aciertos y 2 errores; son imágenes de Google, no del dataset ([confirmación de la PM](https://github.com/Andy-752109/Proyecto04-MLOps/pull/34#issuecomment-6072364988)), y una secuencia de 31 capturas duró 5 min 26 s. Se documentaron corte de red, reintentos, un segundo intento `already_sent` y reinicio. [Índice de evidencias](../../reports/p4/README.md) y [guion de demo](guion-demo.md).
 
-## Limitaciones y pendientes
+## Limitaciones
 
-- La confirmación del PM de que las fotografías de P4-12 no pertenecen al dataset sigue abierta en [validación E2E](validacion-e2e.md).
-- La corrida final prevista para el viernes 9 todavía no consta en las evidencias versionadas.
-- La revisión por Karen o Ale desde un clon limpio todavía no se ha ejecutado; hay [checklist](revision-clon-limpio.md).
-- El benchmark mide preprocesamiento e inferencia sobre 20 recortes de referencia, no cámara, carga de modelo ni subida. La calidad de validation usa 131 muestras; la prueba física de 20 fotos tuvo 2 errores.
+- En P4-12 las fotos se mostraron a la cámara desde una pantalla, no impresas como se había planeado (se ve el borde del monitor en el portal). La PM lo aceptó: el recorrido captura → inferencia local → S3 → portal no cambia por el medio de la foto ([decisión](https://github.com/Andy-752109/Proyecto04-MLOps/pull/34#issuecomment-6072364988)).
+- El benchmark mide preprocesamiento e inferencia sobre 20 recortes de referencia, no cámara ni carga de modelo; la subida se mide aparte en `uploads.jsonl`. La calidad de validation usa 131 muestras; la prueba física de 20 fotos tuvo 2 errores.
 - El portal requiere red, SSO vigente y acceso al bucket; la clasificación local continúa sin red.
