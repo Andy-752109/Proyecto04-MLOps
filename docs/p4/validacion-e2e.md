@@ -4,7 +4,8 @@ Corrida en el dispositivo edge (laptop + cámara USB) que demuestra el recorrido
 captura → inferencia local → S3 → portal. Los fallos reales se registran, no se ocultan;
 los hallazgos se corrigen en el issue de origen.
 
-- Ensayo: jueves 8 de octubre. Corrida final: viernes 9 (el PM la verifica en vivo).
+- Corrida final: 8 de octubre (00:50–01:14 UTC del 9 de octubre), verificada en vivo por la PM
+  ([decisión](https://github.com/Andy-752109/Proyecto04-MLOps/pull/34#issuecomment-6072364988)).
 - Evidencia: `reports/p4/operation/` (ver "Exportaciones").
 
 ## Preparación
@@ -75,6 +76,7 @@ S3 es igual al del log local y el portal muestra los mismos metadatos.
 
 ## Criterios de aceptación
 
-- [x] Pasos 1–7 cumplidos, con evidencia por paso (ensayo; la corrida final del viernes la verifica el PM en vivo)
+- [x] Pasos 1–7 cumplidos, con evidencia por paso (corrida final verificada por la PM en vivo el 8 de octubre)
 - [x] ≥20 capturas en S3 y en el portal con metadatos coincidentes (57)
-- [ ] El PM confirma que las fotografías no pertenecen al dataset
+- [x] El PM confirma que las fotografías no pertenecen al dataset (son imágenes de Google;
+  [confirmación](https://github.com/Andy-752109/Proyecto04-MLOps/pull/34#issuecomment-6072364988))

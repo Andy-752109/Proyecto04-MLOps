@@ -1,0 +1,39 @@
+# Guion de demostración P4 (10–15 minutos)
+
+Guion ensayado el 8 de octubre (ver [Ensayo realizado](#ensayo-realizado)). Reparto sugerido: Karen opera la laptop edge y Heri presenta evidencias, S3 y portal. Confirmar responsables con el equipo. Si falla una prueba en vivo, indicar que se cambia a **evidencia previamente registrada** y no presentar esa evidencia como una ejecución nueva.
+
+## Ensayo realizado
+
+| Campo | Registro |
+|---|---|
+| Fecha | Jueves 8 de octubre de 2026 |
+| Participantes | Karen y Ale; la PM estuvo presente como observadora |
+| Equipos | Mac de Karen para el portal; `edge-laptop-01` con la cámara `GENERAL WEBCAM` |
+| Duración aproximada | 20 minutos |
+| Incidencias y ajustes | Sin fallas de operación. El modelo asignó la clase contraria a 2 fotos; se dejan visibles como errores reales del clasificador. Las fotos se mostraron a la cámara desde una pantalla, no impresas; la PM lo aceptó |
+
+## Preparación antes de iniciar el cronómetro
+
+- En la laptop Windows, tener materializados el paquete P3 `1.0.0` y el ONNX `1.0.0-int8`, `edge/config.yaml` ajustado, cámara `GENERAL WEBCAM` conectada y `python -m edge status` con `sha256: OK`. `edge run` coteja además el registro de modelos al arrancar.
+- Tener **dos terminales** en la laptop: A para `python -m edge run` (queda ocupada esperando Enter) y B para `python -m edge status` y `python -m edge retry --pending`. Preparar las fotos de gato y perro y anotar los UUID que se generen.
+- Iniciar `aws sso login --profile mlops-p3` en la laptop y en la computadora del portal. Comprobar la identidad con `aws sts get-caller-identity --profile mlops-p3` y la lectura del bucket con `aws s3api list-objects-v2 --bucket mlops-p4-edge-captures-222629887955 --prefix edge-captures/v1/events/ --max-keys 1 --profile mlops-p3`.
+- En la computadora de desarrollo, completar el `.env` local, ejecutar **antes** `docker compose up -d --build frontend ml-api`, abrir `http://localhost:8080/edge/captures` y comprobar `http://localhost:8080/ml-api/health`. Confirmar que la consulta de capturas responde. La API incluye URLs prefirmadas: no mostrar ni guardar su respuesta completa.
+- Tener abiertos [ficha](ficha-entrega.md), [índice](../../reports/p4/README.md), [calidad](comparacion-calidad.md), [benchmark](benchmark.md) y [acta E2E](validacion-e2e.md). La demostración offline puede requerir varios segundos para que el intento cambie de `pending` a `failed`; si excede el tiempo asignado, mostrar el respaldo.
+
+## Secuencia cronometrada
+
+| Minuto | Tipo y responsable sugerido | Pantalla o comando real | Resultado esperado | Respaldo si falla el vivo |
+|---|---|---|---|---|
+| 0–1 | En vivo · Heri | Arquitectura del [README P4](../../README.md#proyecto-4--clasificación-en-edge) | P3 → ONNX INT8 → cámara/edge → S3 → API → portal | [ficha](ficha-entrega.md) |
+| 1–2 | Evidencia registrada · Heri | [procedencia P3](modelo-origen.md), [registro](../../models/registry.json) | `1.0.0`, ResNet-18, SHA del checkpoint y clases `cat`/`dog` | [recarga](../../reports/p4/evidence/verify_reload_1.0.0.txt) |
+| 2–3 | Evidencia registrada · Heri | [conversión](../../reports/p4/conversion/conversion_log.json), [registro edge](../../models/edge_registry.json); mencionar `uv run --group ml python -m edge_model.convert` desde `app/` | Paridad FP32 e INT8 QDQ por canal `1.0.0-int8` | [paridad](../../reports/p4/conversion/parity_fp32.json) |
+| 3–4 | En vivo · Karen | Laptop/cámara; terminal B: `python -m edge cameras` y `python -m edge status` | `GENERAL WEBCAM`, `edge-laptop-01`, `sha256: OK` | [estado P4-12](../../reports/p4/operation/paso1_status.txt) |
+| 4–6 | En vivo · Karen | Terminal A: `python -m edge run`; mostrar gato, Enter; mostrar perro, Enter. Anotar ambos UUID | Clase, confianza y evento local para cada captura; la predicción puede equivocarse | [20 etiquetas](../../reports/p4/operation/ground_truth.csv), [18 aciertos y 2 errores](../../reports/p4/operation/resumen.md), [eventos](../../reports/p4/operation/events_local.csv) |
+| 6–9 | En vivo · Karen | Cortar WiFi en Windows, capturar con Enter en A; esperar el fallo de envío, consultar `python -m edge status` en B; restaurar WiFi, salir de A con `q`, ejecutar `python -m edge retry --pending` en B | Clasificación y UUID locales aun sin red; el mismo ID pasa de `failed` a `sent` al reintentar | [fallo offline](../../reports/p4/operation/paso4_failed_antes.jsonl), [reintento](../../reports/p4/operation/paso4_retry.txt), [idempotencia](../../reports/p4/operation/paso5_retry_repetido.txt) |
+| 9–11 | En vivo · Heri/Karen | Usar el UUID anotado: `aws s3api head-object --bucket mlops-p4-edge-captures-222629887955 --key "edge-captures/v1/images/<capture_id>.jpg" --profile mlops-p3`; leer el evento JSON con el procedimiento del [README](../../README.md#abrir-capturas-edge-y-verificar-una-captura); actualizar `http://localhost:8080/edge/captures` | Foto y evento del mismo ID en S3; clase, confianza, fecha y UUID visibles en el portal | [cinco IDs trazados](../../reports/p4/operation/trazabilidad.md), [captura del portal](../../reports/p4/operation/paso7_portal_d9bd109d.jpg) |
+| 11–12 | Evidencia registrada · Heri | [calidad](comparacion-calidad.md), [JSON val](../../reports/p4/quality/metrics_val.json) | 126/131 en ambos; accuracy 0.961832, F1 macro 0.961823, caída 0 pp | [comparación CSV](../../reports/p4/quality/comparison_val.csv) |
+| 12–13 | Evidencia registrada · Heri/Karen | [benchmark](benchmark.md), [resumen](../../reports/p4/benchmark/summary.json) | Tamaño −74.768 %; p50 total 24.155 → 8.9102 ms; p95 24.727215 → 9.436275 ms | [CSV crudo](../../reports/p4/benchmark/latency_raw.csv), [log](../../reports/p4/benchmark/run.log) |
+| 13–14 | Evidencia registrada · Karen/Heri | [corrida final P4-12](validacion-e2e.md), [resumen](../../reports/p4/operation/resumen.md) | 20 fotos, 5 min 26 s, offline, reinicio, reintentos y 57 UUID únicos | [índice](../../reports/p4/README.md), [reinicio](../../reports/p4/operation/paso6_reinicio.txt) |
+| 14–15 | En vivo · Heri | [ficha](ficha-entrega.md) y [checklist](revision-clon-limpio.md) | Cerrar con los dos errores físicos y las limitaciones: fotos mostradas en pantalla y alcance del benchmark | [índice](../../reports/p4/README.md) |
+
+Sustituir `<capture_id>` por el UUID real antes de ejecutar el comando S3. Los comandos de consulta son de solo lectura; no ejecutar conversión, benchmark ni infraestructura durante la demo. La corrida documentada de P4-12 (8 de octubre) es la corrida final, verificada en vivo por la PM.

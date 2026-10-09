@@ -265,13 +265,17 @@ latencia tienen fuentes distintas: P4-10 evalúa validation y P4-11 mide latenci
 
 ## Upload por separado (P4-09, PR #29)
 
-**P4-09 upload_ms: pendiente de evidencia real versionada.** P4-09 registra cada intento en
+**Tiempo de subida (criterio 3.2), medido aparte:** en la corrida P4-12,
+[`reports/p4/operation/uploads.jsonl`](../../reports/p4/operation/uploads.jsonl) registra 57 envíos
+`sent` con p50 1,814 ms y p95 4,521 ms (mín. 565 ms, máx. 6,076 ms; percentil con interpolación
+lineal). En la prueba de fallo y reintento de P4-09, el envío `sent` tardó 2,782 ms
+([evidencia](https://github.com/Andy-752109/Proyecto04-MLOps/issues/9#issuecomment-6071641928)).
+
+P4-09 registra cada intento en
 `edge/data/uploads.jsonl`, separado de `captures.jsonl`:
 `capture_id`, `upload_status`, `error`, `upload_ms`, `bucket`, `at`. `upload_ms` abarca validación
 del evento, lectura del JPEG y dos operaciones de S3; **no es solo tiempo de red**. Un
 `sent` después de reintento puede tener la imagen ya subida, así que conservar el estado y
 contexto del intento al citarlo. `edge export` refleja el **último** intento, mientras que
-`uploads.jsonl` conserva todo el historial. Citar una medición real y su
-`capture_id` desde ese log cuando esté disponible. No usar el número ilustrativo de la
-documentación de P4-09 ni volver a subir objetos solo para este benchmark. Upload nunca se
-incorpora a `total_ms`, p50 o p95 locales.
+`uploads.jsonl` conserva todo el historial. No se volvieron a subir objetos solo para este
+benchmark. Upload nunca se incorpora a `total_ms`, p50 o p95 locales.
