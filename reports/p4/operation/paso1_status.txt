@@ -1,0 +1,12 @@
+3.12.10 onnxruntime 1.30.0
+dispositivo : edge-laptop-01
+modo        : manual (intervalo 10 s)
+cßmara      : GENERAL WEBCAM
+recorte     : {'center_square': 0.8}
+modelo      : C:\Users\karen\Proyecto04-MLOps\edge\models\model_int8.onnx (1.0.0-int8, onnxruntime)
+sha256      : OK
+capturas    : 0 en C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl
+bucket      : mlops-p4-edge-captures-222629887955
+envÝos      : pending 0, sent 0, already_sent 0, failed 0
+0: GENERAL WEBCAM
+1: USB2.0 UVC HD Webcam

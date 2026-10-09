@@ -1,0 +1,10 @@
+2026-10-08 19:13:44,021 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:13:44,087 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:13:44,104 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 55 capturas previas
+2026-10-08 19:13:44,104 INFO modo interval, dispositivo edge-laptop-01, cßmara GENERAL WEBCAM
+2026-10-08 19:13:44,109 INFO envÝo a s3://mlops-p4-edge-captures-no-existe-222629887955 (perfil mlops-p3)
+2026-10-08 19:13:46,434 INFO captura 5b9deb7b-24a0-4dc7-bc71-a680a042aa9e cat 0.9774
+[1] CAT 0.977 | pre 3.1 ms | inf 3.6 ms | 5b9deb7b-24a0-4dc7-bc71-a680a042aa9e
+2026-10-08 19:13:46,712 INFO esperando 1 envÝos en cola (mßx. 60 s)
+2026-10-08 19:13:50,154 ERROR envÝo 5b9deb7b-24a0-4dc7-bc71-a680a042aa9e FALLË (mlops-p4-edge-captures-no-existe-222629887955): NoSuchBucket: The specified bucket does not exist; reintenta con: python -m edge retry 5b9deb7b-24a0-4dc7-bc71-a680a042aa9e
+2026-10-08 19:13:50,155 INFO fin: 1 capturas en esta sesi¾n

@@ -1,0 +1,294 @@
+2026-10-08 18:50:22,320 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:50:22,690 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:50:22,691 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 0 capturas previas
+2026-10-08 18:50:22,691 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:50:22,692 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:50:26,727 INFO captura c0c193c8-1d41-40bd-92d1-70dc1717562f dog 0.9975
+2026-10-08 18:50:27,110 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:50:36,253 INFO envío c0c193c8-1d41-40bd-92d1-70dc1717562f sent (6076 ms)
+2026-10-08 18:50:36,254 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:50:59,498 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:50:59,535 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:50:59,552 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 1 capturas previas
+2026-10-08 18:50:59,552 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:50:59,557 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:51:01,934 INFO captura d9bd109d-784e-426f-acb5-8743e44fef1e cat 0.7782
+2026-10-08 18:51:02,221 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:51:06,006 INFO envío d9bd109d-784e-426f-acb5-8743e44fef1e sent (3250 ms)
+2026-10-08 18:51:06,006 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:51:57,063 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:51:57,113 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:51:57,125 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 2 capturas previas
+2026-10-08 18:51:57,125 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:51:57,127 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:51:59,505 INFO captura 52e398c0-e35f-416f-98bb-2e02edcc6b87 dog 0.9998
+2026-10-08 18:51:59,793 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:52:03,716 INFO envío 52e398c0-e35f-416f-98bb-2e02edcc6b87 sent (3369 ms)
+2026-10-08 18:52:03,722 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:52:15,725 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:52:15,775 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:52:15,792 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 3 capturas previas
+2026-10-08 18:52:15,792 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:52:15,794 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:52:18,137 INFO captura f70e8b3b-f671-4cea-8aaa-c640e0829d7a dog 0.8965
+2026-10-08 18:52:18,427 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:52:22,113 INFO envío f70e8b3b-f671-4cea-8aaa-c640e0829d7a sent (3098 ms)
+2026-10-08 18:52:22,114 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:53:04,601 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:53:04,649 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:53:04,721 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 4 capturas previas
+2026-10-08 18:53:04,722 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:53:04,722 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:53:07,130 INFO captura 3e60aa20-2b0e-4ed7-bf02-2ff3f2d6f02e dog 0.9954
+2026-10-08 18:53:07,399 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:53:11,298 INFO envío 3e60aa20-2b0e-4ed7-bf02-2ff3f2d6f02e sent (3319 ms)
+2026-10-08 18:53:11,298 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:53:27,285 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:53:27,321 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:53:27,337 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 5 capturas previas
+2026-10-08 18:53:27,337 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:53:27,344 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:53:29,696 INFO captura 62a3cb82-9b1c-4b13-a9ed-ea53ed780a51 dog 0.9594
+2026-10-08 18:53:29,963 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:53:34,765 INFO envío 62a3cb82-9b1c-4b13-a9ed-ea53ed780a51 sent (4216 ms)
+2026-10-08 18:53:34,765 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:54:03,425 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:54:03,463 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:54:03,478 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 6 capturas previas
+2026-10-08 18:54:03,478 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:54:03,482 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:54:05,856 INFO captura 5f046cb2-07c4-475f-a2a8-0d4e521efe29 dog 0.8917
+2026-10-08 18:54:06,144 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:54:10,198 INFO envío 5f046cb2-07c4-475f-a2a8-0d4e521efe29 sent (3453 ms)
+2026-10-08 18:54:10,208 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:54:38,403 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:54:38,443 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:54:38,459 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 7 capturas previas
+2026-10-08 18:54:38,459 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:54:38,463 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:54:40,823 INFO captura c6f99924-fe20-44b7-ba0b-e34516c437be dog 0.9784
+2026-10-08 18:54:41,088 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:54:44,950 INFO envío c6f99924-fe20-44b7-ba0b-e34516c437be sent (3250 ms)
+2026-10-08 18:54:44,950 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:55:24,937 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:55:24,974 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:55:24,990 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 8 capturas previas
+2026-10-08 18:55:24,990 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:55:24,997 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:55:27,341 INFO captura 03b63de6-3cd3-4a62-934f-07b8c9c33d13 dog 0.7318
+2026-10-08 18:55:27,630 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:55:31,609 INFO envío 03b63de6-3cd3-4a62-934f-07b8c9c33d13 sent (3380 ms)
+2026-10-08 18:55:31,610 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:55:50,579 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:55:50,614 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:55:50,630 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 9 capturas previas
+2026-10-08 18:55:50,630 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:55:50,638 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:55:52,967 INFO captura 389d89e1-09d7-4403-aa38-08040938a920 dog 0.9868
+2026-10-08 18:55:53,242 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:55:57,201 INFO envío 389d89e1-09d7-4403-aa38-08040938a920 sent (3362 ms)
+2026-10-08 18:55:57,202 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:57:55,003 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:57:55,066 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:57:55,074 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 10 capturas previas
+2026-10-08 18:57:55,074 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:57:55,082 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:57:57,494 INFO captura 630d675e-5b42-469c-ab1f-245475a4cef3 cat 0.7013
+2026-10-08 18:57:57,768 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:58:01,970 INFO envío 630d675e-5b42-469c-ab1f-245475a4cef3 sent (3625 ms)
+2026-10-08 18:58:01,971 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:58:16,484 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:58:16,532 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:58:16,532 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 11 capturas previas
+2026-10-08 18:58:16,532 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:58:16,544 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:58:18,931 INFO captura 45730efb-5920-4eb1-9874-c41369252764 cat 0.9985
+2026-10-08 18:58:19,218 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:58:23,021 INFO envío 45730efb-5920-4eb1-9874-c41369252764 sent (3243 ms)
+2026-10-08 18:58:23,022 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:58:37,973 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:58:38,010 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:58:38,025 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 12 capturas previas
+2026-10-08 18:58:38,025 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:58:38,032 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:58:40,378 INFO captura 359dfcfe-3315-47c8-82d8-027b10f15b62 cat 0.8868
+2026-10-08 18:58:40,667 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:58:44,546 INFO envío 359dfcfe-3315-47c8-82d8-027b10f15b62 sent (3269 ms)
+2026-10-08 18:58:44,547 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:58:57,742 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:58:57,793 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:58:57,799 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 13 capturas previas
+2026-10-08 18:58:57,799 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:58:57,803 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:59:00,212 INFO captura a949c833-0b25-4b05-bad5-f4df4330a697 cat 0.9681
+2026-10-08 18:59:00,494 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:59:04,794 INFO envío a949c833-0b25-4b05-bad5-f4df4330a697 sent (3539 ms)
+2026-10-08 18:59:04,794 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:59:22,632 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:59:22,680 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:59:22,688 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 14 capturas previas
+2026-10-08 18:59:22,688 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:59:22,692 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:59:25,131 INFO captura 5f729ef9-90c8-4e7c-a5b2-4e75fe968b1b cat 0.9840
+2026-10-08 18:59:25,411 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:59:29,607 INFO envío 5f729ef9-90c8-4e7c-a5b2-4e75fe968b1b sent (3611 ms)
+2026-10-08 18:59:29,607 INFO fin: 1 capturas en esta sesión
+2026-10-08 18:59:48,180 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 18:59:48,214 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 18:59:48,229 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 15 capturas previas
+2026-10-08 18:59:48,229 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 18:59:48,239 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 18:59:50,588 INFO captura d36937d6-5aa1-463b-8b79-d5365f2fa55e dog 0.9096
+2026-10-08 18:59:50,861 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 18:59:54,645 INFO envío d36937d6-5aa1-463b-8b79-d5365f2fa55e sent (3211 ms)
+2026-10-08 18:59:54,645 INFO fin: 1 capturas en esta sesión
+2026-10-08 19:00:15,250 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:00:15,298 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:00:15,313 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 16 capturas previas
+2026-10-08 19:00:15,313 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 19:00:15,320 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 19:00:17,664 INFO captura b3973f79-de83-4868-a4fa-ca3aabdefd3a cat 0.8650
+2026-10-08 19:00:17,935 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 19:00:21,836 INFO envío b3973f79-de83-4868-a4fa-ca3aabdefd3a sent (3296 ms)
+2026-10-08 19:00:21,849 INFO fin: 1 capturas en esta sesión
+2026-10-08 19:00:33,996 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:00:34,032 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:00:34,048 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 17 capturas previas
+2026-10-08 19:00:34,048 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 19:00:34,055 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 19:00:36,423 INFO captura 509a93e7-8d6d-4a43-a113-b26903d28188 cat 0.9176
+2026-10-08 19:00:36,711 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 19:00:40,579 INFO envío 509a93e7-8d6d-4a43-a113-b26903d28188 sent (3273 ms)
+2026-10-08 19:00:40,583 INFO fin: 1 capturas en esta sesión
+2026-10-08 19:00:58,760 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:00:58,795 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:00:58,811 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 18 capturas previas
+2026-10-08 19:00:58,811 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 19:00:58,819 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 19:01:01,198 INFO captura f5eccb0c-cc05-45ac-8209-f1c904cab900 cat 0.9998
+2026-10-08 19:01:01,470 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 19:01:07,837 INFO envío f5eccb0c-cc05-45ac-8209-f1c904cab900 sent (5743 ms)
+2026-10-08 19:01:07,837 INFO fin: 1 capturas en esta sesión
+2026-10-08 19:01:32,580 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:01:32,617 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:01:32,632 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 19 capturas previas
+2026-10-08 19:01:32,632 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 19:01:32,637 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 19:01:34,965 INFO captura aad465bf-2eb9-404a-90a6-26e5db4cd06e cat 0.6462
+2026-10-08 19:01:35,245 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 19:01:38,996 INFO envío aad465bf-2eb9-404a-90a6-26e5db4cd06e sent (3138 ms)
+2026-10-08 19:01:39,009 INFO fin: 1 capturas en esta sesión
+2026-10-08 19:02:36,311 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:02:36,356 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:02:36,356 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 20 capturas previas
+2026-10-08 19:02:36,356 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 19:02:36,370 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 19:02:38,700 INFO captura 3ff8d93d-9386-4555-809e-c3ca9866106c cat 0.9762
+2026-10-08 19:02:43,197 INFO envío 3ff8d93d-9386-4555-809e-c3ca9866106c sent (3490 ms)
+2026-10-08 19:02:49,392 INFO captura c4485751-316e-49fa-ad17-27702bbb0595 cat 0.9774
+2026-10-08 19:02:51,051 INFO envío c4485751-316e-49fa-ad17-27702bbb0595 sent (1570 ms)
+2026-10-08 19:03:00,012 INFO captura 3fb9d88c-3e32-4e1d-8e20-bb1c3b844fd1 cat 0.9774
+2026-10-08 19:03:01,693 INFO envío 3fb9d88c-3e32-4e1d-8e20-bb1c3b844fd1 sent (1647 ms)
+2026-10-08 19:03:10,652 INFO captura a275c5a1-08ee-4cc3-96cf-9ad466ba5b1f cat 0.9774
+2026-10-08 19:03:12,752 INFO envío a275c5a1-08ee-4cc3-96cf-9ad466ba5b1f sent (2024 ms)
+2026-10-08 19:03:21,327 INFO captura 7d91a65a-beec-491e-8989-a99d872b282e cat 0.9795
+2026-10-08 19:03:23,886 INFO envío 7d91a65a-beec-491e-8989-a99d872b282e sent (2476 ms)
+2026-10-08 19:03:31,986 INFO captura 0e9858e3-fca1-406d-abf5-f4e900bc1417 cat 0.9814
+2026-10-08 19:03:33,594 INFO envío 0e9858e3-fca1-406d-abf5-f4e900bc1417 sent (1529 ms)
+2026-10-08 19:03:42,636 INFO captura a2db494e-ba1b-41ee-afbe-cd5c1fb2db15 cat 0.9831
+2026-10-08 19:03:44,411 INFO envío a2db494e-ba1b-41ee-afbe-cd5c1fb2db15 sent (1691 ms)
+2026-10-08 19:03:53,303 INFO captura ea30f591-b65b-418c-bae6-c40ed605d5f4 cat 0.9784
+2026-10-08 19:03:54,998 INFO envío ea30f591-b65b-418c-bae6-c40ed605d5f4 sent (1629 ms)
+2026-10-08 19:04:03,995 INFO captura 526c5363-23d5-4cb9-991c-09a3d5594998 cat 0.9840
+2026-10-08 19:04:05,814 INFO envío 526c5363-23d5-4cb9-991c-09a3d5594998 sent (1695 ms)
+2026-10-08 19:04:14,680 INFO captura c1f20300-090c-4596-9967-3c99f2b4b34b cat 0.9855
+2026-10-08 19:04:16,503 INFO envío c1f20300-090c-4596-9967-3c99f2b4b34b sent (1717 ms)
+2026-10-08 19:04:25,372 INFO captura a64c9ff5-bd74-4478-bf99-57784b5d54f5 cat 0.9762
+2026-10-08 19:04:27,153 INFO envío a64c9ff5-bd74-4478-bf99-57784b5d54f5 sent (1697 ms)
+2026-10-08 19:04:36,031 INFO captura 012f9c78-3f17-4a68-9491-4f5b99df62f6 cat 0.9795
+2026-10-08 19:04:42,096 INFO envío 012f9c78-3f17-4a68-9491-4f5b99df62f6 sent (5976 ms)
+2026-10-08 19:04:46,706 INFO captura c3fde7fa-147b-48d7-b000-1b4b7ea0db58 cat 0.9814
+2026-10-08 19:04:47,679 INFO envío c3fde7fa-147b-48d7-b000-1b4b7ea0db58 sent (889 ms)
+2026-10-08 19:04:57,353 INFO captura 0a94e801-b75c-4615-8a8c-5e036688ca3a cat 0.9814
+2026-10-08 19:04:59,054 INFO envío 0a94e801-b75c-4615-8a8c-5e036688ca3a sent (1624 ms)
+2026-10-08 19:05:08,014 INFO captura caabc40e-1870-4de9-8829-f7f46fc192c2 cat 0.9774
+2026-10-08 19:05:09,788 INFO envío caabc40e-1870-4de9-8829-f7f46fc192c2 sent (1689 ms)
+2026-10-08 19:05:18,673 INFO captura f90bbbdb-e57c-458d-b948-0938e3b4733d cat 0.9954
+2026-10-08 19:05:20,471 INFO envío f90bbbdb-e57c-458d-b948-0938e3b4733d sent (1713 ms)
+2026-10-08 19:05:29,324 INFO captura 06ffb09b-eb85-4c3d-bf58-91defc18273d cat 0.9847
+2026-10-08 19:05:31,030 INFO envío 06ffb09b-eb85-4c3d-bf58-91defc18273d sent (1640 ms)
+2026-10-08 19:05:40,007 INFO captura ab73236f-baeb-4555-a8c2-539e493e9073 cat 0.9665
+2026-10-08 19:05:41,830 INFO envío ab73236f-baeb-4555-a8c2-539e493e9073 sent (1777 ms)
+2026-10-08 19:05:50,657 INFO captura 796ebbb2-93d5-4ee8-8478-2a4dd84c08f3 cat 0.9784
+2026-10-08 19:05:52,196 INFO envío 796ebbb2-93d5-4ee8-8478-2a4dd84c08f3 sent (1476 ms)
+2026-10-08 19:06:01,357 INFO captura 56a9092b-12af-4386-b29f-2a83cf2d0b14 cat 0.9814
+2026-10-08 19:06:03,174 INFO envío 56a9092b-12af-4386-b29f-2a83cf2d0b14 sent (1719 ms)
+2026-10-08 19:06:11,988 INFO captura 8d2f1919-0bb0-4d52-a3c8-b6b2eab0f933 cat 0.9681
+2026-10-08 19:06:13,883 INFO envío 8d2f1919-0bb0-4d52-a3c8-b6b2eab0f933 sent (1814 ms)
+2026-10-08 19:06:22,633 INFO captura 0fb0f2d2-2074-4352-8f0e-e845766812b6 cat 0.9774
+2026-10-08 19:06:24,392 INFO envío 0fb0f2d2-2074-4352-8f0e-e845766812b6 sent (1658 ms)
+2026-10-08 19:06:33,267 INFO captura 758aec4d-199b-41e5-98e9-6b3f54218e85 cat 0.9681
+2026-10-08 19:06:35,150 INFO envío 758aec4d-199b-41e5-98e9-6b3f54218e85 sent (1802 ms)
+2026-10-08 19:06:43,950 INFO captura aebc0201-6aee-4c83-8164-76dfc18ff56b cat 0.9681
+2026-10-08 19:06:45,625 INFO envío aebc0201-6aee-4c83-8164-76dfc18ff56b sent (1583 ms)
+2026-10-08 19:06:54,592 INFO captura 258f2502-f45b-46c5-9633-bc614dbb4146 cat 0.9840
+2026-10-08 19:06:56,434 INFO envío 258f2502-f45b-46c5-9633-bc614dbb4146 sent (1741 ms)
+2026-10-08 19:07:05,287 INFO captura ae92dbfd-ee6d-428f-bfbd-9de65c456ecb cat 0.9795
+2026-10-08 19:07:07,101 INFO envío ae92dbfd-ee6d-428f-bfbd-9de65c456ecb sent (1719 ms)
+2026-10-08 19:07:15,984 INFO captura e3268a73-38e8-4466-9b7d-a9df08d06e4f cat 0.9805
+2026-10-08 19:07:17,701 INFO envío e3268a73-38e8-4466-9b7d-a9df08d06e4f sent (1619 ms)
+2026-10-08 19:07:26,663 INFO captura 2fdf18b7-b039-4040-b49e-fbb434431165 cat 0.9762
+2026-10-08 19:07:28,451 INFO envío 2fdf18b7-b039-4040-b49e-fbb434431165 sent (1691 ms)
+2026-10-08 19:07:37,352 INFO captura 48c2a882-ae1e-41ed-9d29-57f05a0d105b cat 0.9665
+2026-10-08 19:07:39,001 INFO envío 48c2a882-ae1e-41ed-9d29-57f05a0d105b sent (1565 ms)
+2026-10-08 19:07:48,015 INFO captura 256f14c0-71a8-4b89-960b-e5e8440f5fd4 cat 0.9594
+2026-10-08 19:07:49,782 INFO envío 256f14c0-71a8-4b89-960b-e5e8440f5fd4 sent (1676 ms)
+2026-10-08 19:07:58,669 INFO captura 940d3d42-c0d1-4d67-8e75-7e76d39d835c cat 0.9681
+2026-10-08 19:07:58,954 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 19:08:00,141 INFO envío 940d3d42-c0d1-4d67-8e75-7e76d39d835c sent (1415 ms)
+2026-10-08 19:08:00,141 INFO fin: 31 capturas en esta sesión
+2026-10-08 19:11:27,953 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:11:28,396 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:11:28,414 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 51 capturas previas
+2026-10-08 19:11:28,414 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 19:11:28,421 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 19:11:32,740 INFO captura d1ef654a-d69c-47d6-84bd-ab44dfa30fb5 cat 0.9631
+2026-10-08 19:11:41,838 ERROR envío d1ef654a-d69c-47d6-84bd-ab44dfa30fb5 FALLÓ (mlops-p4-edge-captures-222629887955): EndpointConnectionError: Could not connect to the endpoint URL: "https://portal.sso.us-east-1.amazonaws.com/federation/credentials?role_name=MLOpsP3&account_id=222629887955"; reintenta con: python -m edge retry d1ef654a-d69c-47d6-84bd-ab44dfa30fb5
+2026-10-08 19:11:43,431 INFO captura 23f8f2f0-f102-465d-9020-3938b1aefad3 cat 0.9665
+2026-10-08 19:11:51,996 ERROR envío 23f8f2f0-f102-465d-9020-3938b1aefad3 FALLÓ (mlops-p4-edge-captures-222629887955): EndpointConnectionError: Could not connect to the endpoint URL: "https://portal.sso.us-east-1.amazonaws.com/federation/credentials?role_name=MLOpsP3&account_id=222629887955"; reintenta con: python -m edge retry 23f8f2f0-f102-465d-9020-3938b1aefad3
+2026-10-08 19:11:54,096 INFO captura 9ce9b13a-ca50-430e-85ee-48433b8161d5 cat 0.9823
+2026-10-08 19:11:54,367 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 19:12:03,160 ERROR envío 9ce9b13a-ca50-430e-85ee-48433b8161d5 FALLÓ (mlops-p4-edge-captures-222629887955): EndpointConnectionError: Could not connect to the endpoint URL: "https://portal.sso.us-east-1.amazonaws.com/federation/credentials?role_name=MLOpsP3&account_id=222629887955"; reintenta con: python -m edge retry 9ce9b13a-ca50-430e-85ee-48433b8161d5
+2026-10-08 19:12:03,172 INFO fin: 3 capturas en esta sesión
+2026-10-08 19:13:00,989 INFO envío d1ef654a-d69c-47d6-84bd-ab44dfa30fb5 sent (2802 ms)
+2026-10-08 19:13:01,603 INFO envío 23f8f2f0-f102-465d-9020-3938b1aefad3 sent (565 ms)
+2026-10-08 19:13:02,272 INFO envío 9ce9b13a-ca50-430e-85ee-48433b8161d5 sent (630 ms)
+2026-10-08 19:13:11,264 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:13:11,305 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:13:11,305 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 54 capturas previas
+2026-10-08 19:13:11,305 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 19:13:11,320 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 19:13:13,683 INFO captura 79714e50-4035-483b-aec0-aaceb0572f20 cat 0.9920
+2026-10-08 19:13:13,973 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 19:13:17,923 INFO envío 79714e50-4035-483b-aec0-aaceb0572f20 sent (3346 ms)
+2026-10-08 19:13:17,923 INFO fin: 1 capturas en esta sesión
+2026-10-08 19:13:44,021 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:13:44,087 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:13:44,104 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 55 capturas previas
+2026-10-08 19:13:44,104 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 19:13:44,109 INFO envío a s3://mlops-p4-edge-captures-no-existe-222629887955 (perfil mlops-p3)
+2026-10-08 19:13:46,434 INFO captura 5b9deb7b-24a0-4dc7-bc71-a680a042aa9e cat 0.9774
+2026-10-08 19:13:46,712 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 19:13:50,154 ERROR envío 5b9deb7b-24a0-4dc7-bc71-a680a042aa9e FALLÓ (mlops-p4-edge-captures-no-existe-222629887955): NoSuchBucket: The specified bucket does not exist; reintenta con: python -m edge retry 5b9deb7b-24a0-4dc7-bc71-a680a042aa9e
+2026-10-08 19:13:50,155 INFO fin: 1 capturas en esta sesión
+2026-10-08 19:13:56,507 INFO envío 5b9deb7b-24a0-4dc7-bc71-a680a042aa9e sent (3777 ms)
+2026-10-08 19:14:02,682 INFO envío 5b9deb7b-24a0-4dc7-bc71-a680a042aa9e already_sent (3611 ms)
+2026-10-08 19:14:39,098 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:14:39,132 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:14:39,148 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 56 capturas previas
+2026-10-08 19:14:39,148 INFO modo interval, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-08 19:14:39,148 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+2026-10-08 19:14:41,518 INFO captura 6a8e867f-6445-47d4-b034-b4bec54259b5 cat 0.9875
+2026-10-08 19:14:41,810 INFO esperando 1 envíos en cola (máx. 60 s)
+2026-10-08 19:14:45,914 INFO envío 6a8e867f-6445-47d4-b034-b4bec54259b5 sent (3514 ms)
+2026-10-08 19:14:45,915 INFO fin: 1 capturas en esta sesión

@@ -1,0 +1,10 @@
+dispositivo : edge-laptop-01
+modo        : manual (intervalo 10 s)
+cßmara      : GENERAL WEBCAM
+recorte     : {'center_square': 0.8}
+modelo      : C:\Users\karen\Proyecto04-MLOps\edge\models\model_int8.onnx (1.0.0-int8, onnxruntime)
+sha256      : OK
+capturas    : 57 en C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl
+bucket      : mlops-p4-edge-captures-222629887955
+envÝos      : pending 0, sent 56, already_sent 1, failed 0
+·ltima      : 2026-10-09T01:14:41.408820+00:00 cat 0.987 (6a8e867f-6445-47d4-b034-b4bec54259b5)
