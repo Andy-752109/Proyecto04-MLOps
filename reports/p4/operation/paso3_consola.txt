@@ -1,0 +1,102 @@
+inicio 2026-10-09T01:02:34Z
+2026-10-08 19:02:36,311 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:02:36,356 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:02:36,356 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 20 capturas previas
+2026-10-08 19:02:36,356 INFO modo interval, dispositivo edge-laptop-01, cßmara GENERAL WEBCAM
+2026-10-08 19:02:36,370 INFO envÝo a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+[1] CAT 0.976 | pre 3.2 ms | inf 3.8 ms | 3ff8d93d-9386-4555-809e-c3ca9866106c
+2026-10-08 19:02:38,700 INFO captura 3ff8d93d-9386-4555-809e-c3ca9866106c cat 0.9762
+2026-10-08 19:02:43,197 INFO envÝo 3ff8d93d-9386-4555-809e-c3ca9866106c sent (3490 ms)
+[2] CAT 0.977 | pre 2.4 ms | inf 5.5 ms | c4485751-316e-49fa-ad17-27702bbb0595
+2026-10-08 19:02:49,392 INFO captura c4485751-316e-49fa-ad17-27702bbb0595 cat 0.9774
+2026-10-08 19:02:51,051 INFO envÝo c4485751-316e-49fa-ad17-27702bbb0595 sent (1570 ms)
+[3] CAT 0.977 | pre 3.2 ms | inf 5.6 ms | 3fb9d88c-3e32-4e1d-8e20-bb1c3b844fd1
+2026-10-08 19:03:00,012 INFO captura 3fb9d88c-3e32-4e1d-8e20-bb1c3b844fd1 cat 0.9774
+2026-10-08 19:03:01,693 INFO envÝo 3fb9d88c-3e32-4e1d-8e20-bb1c3b844fd1 sent (1647 ms)
+[4] CAT 0.977 | pre 2.6 ms | inf 4.3 ms | a275c5a1-08ee-4cc3-96cf-9ad466ba5b1f
+2026-10-08 19:03:10,652 INFO captura a275c5a1-08ee-4cc3-96cf-9ad466ba5b1f cat 0.9774
+2026-10-08 19:03:12,752 INFO envÝo a275c5a1-08ee-4cc3-96cf-9ad466ba5b1f sent (2024 ms)
+[5] CAT 0.979 | pre 3.8 ms | inf 8.3 ms | 7d91a65a-beec-491e-8989-a99d872b282e
+2026-10-08 19:03:21,327 INFO captura 7d91a65a-beec-491e-8989-a99d872b282e cat 0.9795
+2026-10-08 19:03:23,886 INFO envÝo 7d91a65a-beec-491e-8989-a99d872b282e sent (2476 ms)
+[6] CAT 0.981 | pre 3.6 ms | inf 8.3 ms | 0e9858e3-fca1-406d-abf5-f4e900bc1417
+2026-10-08 19:03:31,986 INFO captura 0e9858e3-fca1-406d-abf5-f4e900bc1417 cat 0.9814
+2026-10-08 19:03:33,594 INFO envÝo 0e9858e3-fca1-406d-abf5-f4e900bc1417 sent (1529 ms)
+[7] CAT 0.983 | pre 3.0 ms | inf 6.0 ms | a2db494e-ba1b-41ee-afbe-cd5c1fb2db15
+2026-10-08 19:03:42,636 INFO captura a2db494e-ba1b-41ee-afbe-cd5c1fb2db15 cat 0.9831
+2026-10-08 19:03:44,411 INFO envÝo a2db494e-ba1b-41ee-afbe-cd5c1fb2db15 sent (1691 ms)
+[8] CAT 0.978 | pre 3.8 ms | inf 8.6 ms | ea30f591-b65b-418c-bae6-c40ed605d5f4
+2026-10-08 19:03:53,303 INFO captura ea30f591-b65b-418c-bae6-c40ed605d5f4 cat 0.9784
+2026-10-08 19:03:54,998 INFO envÝo ea30f591-b65b-418c-bae6-c40ed605d5f4 sent (1629 ms)
+[9] CAT 0.984 | pre 2.6 ms | inf 6.0 ms | 526c5363-23d5-4cb9-991c-09a3d5594998
+2026-10-08 19:04:03,995 INFO captura 526c5363-23d5-4cb9-991c-09a3d5594998 cat 0.9840
+2026-10-08 19:04:05,814 INFO envÝo 526c5363-23d5-4cb9-991c-09a3d5594998 sent (1695 ms)
+[10] CAT 0.985 | pre 2.6 ms | inf 5.9 ms | c1f20300-090c-4596-9967-3c99f2b4b34b
+2026-10-08 19:04:14,680 INFO captura c1f20300-090c-4596-9967-3c99f2b4b34b cat 0.9855
+2026-10-08 19:04:16,503 INFO envÝo c1f20300-090c-4596-9967-3c99f2b4b34b sent (1717 ms)
+[11] CAT 0.976 | pre 2.7 ms | inf 6.3 ms | a64c9ff5-bd74-4478-bf99-57784b5d54f5
+2026-10-08 19:04:25,372 INFO captura a64c9ff5-bd74-4478-bf99-57784b5d54f5 cat 0.9762
+2026-10-08 19:04:27,153 INFO envÝo a64c9ff5-bd74-4478-bf99-57784b5d54f5 sent (1697 ms)
+[12] CAT 0.979 | pre 2.6 ms | inf 5.9 ms | 012f9c78-3f17-4a68-9491-4f5b99df62f6
+2026-10-08 19:04:36,031 INFO captura 012f9c78-3f17-4a68-9491-4f5b99df62f6 cat 0.9795
+2026-10-08 19:04:42,096 INFO envÝo 012f9c78-3f17-4a68-9491-4f5b99df62f6 sent (5976 ms)
+[13] CAT 0.981 | pre 2.4 ms | inf 7.0 ms | c3fde7fa-147b-48d7-b000-1b4b7ea0db58
+2026-10-08 19:04:46,706 INFO captura c3fde7fa-147b-48d7-b000-1b4b7ea0db58 cat 0.9814
+2026-10-08 19:04:47,679 INFO envÝo c3fde7fa-147b-48d7-b000-1b4b7ea0db58 sent (889 ms)
+[14] CAT 0.981 | pre 2.7 ms | inf 6.5 ms | 0a94e801-b75c-4615-8a8c-5e036688ca3a
+2026-10-08 19:04:57,353 INFO captura 0a94e801-b75c-4615-8a8c-5e036688ca3a cat 0.9814
+2026-10-08 19:04:59,054 INFO envÝo 0a94e801-b75c-4615-8a8c-5e036688ca3a sent (1624 ms)
+[15] CAT 0.977 | pre 2.8 ms | inf 6.6 ms | caabc40e-1870-4de9-8829-f7f46fc192c2
+2026-10-08 19:05:08,014 INFO captura caabc40e-1870-4de9-8829-f7f46fc192c2 cat 0.9774
+2026-10-08 19:05:09,788 INFO envÝo caabc40e-1870-4de9-8829-f7f46fc192c2 sent (1689 ms)
+[16] CAT 0.995 | pre 2.5 ms | inf 5.6 ms | f90bbbdb-e57c-458d-b948-0938e3b4733d
+2026-10-08 19:05:18,673 INFO captura f90bbbdb-e57c-458d-b948-0938e3b4733d cat 0.9954
+2026-10-08 19:05:20,471 INFO envÝo f90bbbdb-e57c-458d-b948-0938e3b4733d sent (1713 ms)
+[17] CAT 0.985 | pre 3.4 ms | inf 9.6 ms | 06ffb09b-eb85-4c3d-bf58-91defc18273d
+2026-10-08 19:05:29,324 INFO captura 06ffb09b-eb85-4c3d-bf58-91defc18273d cat 0.9847
+2026-10-08 19:05:31,030 INFO envÝo 06ffb09b-eb85-4c3d-bf58-91defc18273d sent (1640 ms)
+[18] CAT 0.967 | pre 3.9 ms | inf 8.1 ms | ab73236f-baeb-4555-a8c2-539e493e9073
+2026-10-08 19:05:40,007 INFO captura ab73236f-baeb-4555-a8c2-539e493e9073 cat 0.9665
+2026-10-08 19:05:41,830 INFO envÝo ab73236f-baeb-4555-a8c2-539e493e9073 sent (1777 ms)
+2026-10-08 19:05:50,657 INFO captura 796ebbb2-93d5-4ee8-8478-2a4dd84c08f3 cat 0.9784
+[19] CAT 0.978 | pre 1.3 ms | inf 4.9 ms | 796ebbb2-93d5-4ee8-8478-2a4dd84c08f3
+2026-10-08 19:05:52,196 INFO envÝo 796ebbb2-93d5-4ee8-8478-2a4dd84c08f3 sent (1476 ms)
+[20] CAT 0.981 | pre 4.0 ms | inf 9.4 ms | 56a9092b-12af-4386-b29f-2a83cf2d0b14
+2026-10-08 19:06:01,357 INFO captura 56a9092b-12af-4386-b29f-2a83cf2d0b14 cat 0.9814
+2026-10-08 19:06:03,174 INFO envÝo 56a9092b-12af-4386-b29f-2a83cf2d0b14 sent (1719 ms)
+[21] CAT 0.968 | pre 3.6 ms | inf 7.9 ms | 8d2f1919-0bb0-4d52-a3c8-b6b2eab0f933
+2026-10-08 19:06:11,988 INFO captura 8d2f1919-0bb0-4d52-a3c8-b6b2eab0f933 cat 0.9681
+2026-10-08 19:06:13,883 INFO envÝo 8d2f1919-0bb0-4d52-a3c8-b6b2eab0f933 sent (1814 ms)
+[22] CAT 0.977 | pre 2.3 ms | inf 4.7 ms | 0fb0f2d2-2074-4352-8f0e-e845766812b6
+2026-10-08 19:06:22,633 INFO captura 0fb0f2d2-2074-4352-8f0e-e845766812b6 cat 0.9774
+2026-10-08 19:06:24,392 INFO envÝo 0fb0f2d2-2074-4352-8f0e-e845766812b6 sent (1658 ms)
+[23] CAT 0.968 | pre 2.4 ms | inf 5.5 ms | 758aec4d-199b-41e5-98e9-6b3f54218e85
+2026-10-08 19:06:33,267 INFO captura 758aec4d-199b-41e5-98e9-6b3f54218e85 cat 0.9681
+2026-10-08 19:06:35,150 INFO envÝo 758aec4d-199b-41e5-98e9-6b3f54218e85 sent (1802 ms)
+[24] CAT 0.968 | pre 2.6 ms | inf 5.5 ms | aebc0201-6aee-4c83-8164-76dfc18ff56b
+2026-10-08 19:06:43,950 INFO captura aebc0201-6aee-4c83-8164-76dfc18ff56b cat 0.9681
+2026-10-08 19:06:45,625 INFO envÝo aebc0201-6aee-4c83-8164-76dfc18ff56b sent (1583 ms)
+[25] CAT 0.984 | pre 3.7 ms | inf 8.0 ms | 258f2502-f45b-46c5-9633-bc614dbb4146
+2026-10-08 19:06:54,592 INFO captura 258f2502-f45b-46c5-9633-bc614dbb4146 cat 0.9840
+2026-10-08 19:06:56,434 INFO envÝo 258f2502-f45b-46c5-9633-bc614dbb4146 sent (1741 ms)
+[26] CAT 0.979 | pre 2.4 ms | inf 5.7 ms | ae92dbfd-ee6d-428f-bfbd-9de65c456ecb
+2026-10-08 19:07:05,287 INFO captura ae92dbfd-ee6d-428f-bfbd-9de65c456ecb cat 0.9795
+2026-10-08 19:07:07,101 INFO envÝo ae92dbfd-ee6d-428f-bfbd-9de65c456ecb sent (1719 ms)
+[27] CAT 0.980 | pre 2.4 ms | inf 5.5 ms | e3268a73-38e8-4466-9b7d-a9df08d06e4f
+2026-10-08 19:07:15,984 INFO captura e3268a73-38e8-4466-9b7d-a9df08d06e4f cat 0.9805
+2026-10-08 19:07:17,701 INFO envÝo e3268a73-38e8-4466-9b7d-a9df08d06e4f sent (1619 ms)
+[28] CAT 0.976 | pre 2.5 ms | inf 6.0 ms | 2fdf18b7-b039-4040-b49e-fbb434431165
+2026-10-08 19:07:26,663 INFO captura 2fdf18b7-b039-4040-b49e-fbb434431165 cat 0.9762
+2026-10-08 19:07:28,451 INFO envÝo 2fdf18b7-b039-4040-b49e-fbb434431165 sent (1691 ms)
+[29] CAT 0.967 | pre 2.6 ms | inf 5.5 ms | 48c2a882-ae1e-41ed-9d29-57f05a0d105b
+2026-10-08 19:07:37,352 INFO captura 48c2a882-ae1e-41ed-9d29-57f05a0d105b cat 0.9665
+2026-10-08 19:07:39,001 INFO envÝo 48c2a882-ae1e-41ed-9d29-57f05a0d105b sent (1565 ms)
+[30] CAT 0.959 | pre 2.4 ms | inf 6.0 ms | 256f14c0-71a8-4b89-960b-e5e8440f5fd4
+2026-10-08 19:07:48,015 INFO captura 256f14c0-71a8-4b89-960b-e5e8440f5fd4 cat 0.9594
+2026-10-08 19:07:49,782 INFO envÝo 256f14c0-71a8-4b89-960b-e5e8440f5fd4 sent (1676 ms)
+[31] CAT 0.968 | pre 2.5 ms | inf 5.8 ms | 940d3d42-c0d1-4d67-8e75-7e76d39d835c
+2026-10-08 19:07:58,669 INFO captura 940d3d42-c0d1-4d67-8e75-7e76d39d835c cat 0.9681
+2026-10-08 19:07:58,954 INFO esperando 1 envÝos en cola (mßx. 60 s)
+2026-10-08 19:08:00,141 INFO envÝo 940d3d42-c0d1-4d67-8e75-7e76d39d835c sent (1415 ms)
+2026-10-08 19:08:00,141 INFO fin: 31 capturas en esta sesi¾n
+fin 2026-10-09T01:08:00Z

@@ -1,0 +1,3 @@
+d1ef654a-d69c-47d6-84bd-ab44dfa30fb5 objetos_en_S3=0
+23f8f2f0-f102-465d-9020-3938b1aefad3 objetos_en_S3=0
+9ce9b13a-ca50-430e-85ee-48433b8161d5 objetos_en_S3=0

@@ -1,0 +1,7 @@
+2026-10-08 19:13:00,989 INFO envÝo d1ef654a-d69c-47d6-84bd-ab44dfa30fb5 sent (2802 ms)
+2026-10-08 19:13:01,603 INFO envÝo 23f8f2f0-f102-465d-9020-3938b1aefad3 sent (565 ms)
+d1ef654a-d69c-47d6-84bd-ab44dfa30fb5 sent 2802 ms
+23f8f2f0-f102-465d-9020-3938b1aefad3 sent 565 ms
+9ce9b13a-ca50-430e-85ee-48433b8161d5 sent 630 ms
+resumen: sent 3
+2026-10-08 19:13:02,272 INFO envÝo 9ce9b13a-ca50-430e-85ee-48433b8161d5 sent (630 ms)

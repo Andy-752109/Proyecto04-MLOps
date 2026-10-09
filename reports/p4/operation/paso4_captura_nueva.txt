@@ -1,0 +1,10 @@
+2026-10-08 19:13:11,264 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-08 19:13:11,305 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-08 19:13:11,305 INFO log C:\Users\karen\Proyecto04-MLOps\edge\data\captures.jsonl: 54 capturas previas
+2026-10-08 19:13:11,305 INFO modo interval, dispositivo edge-laptop-01, cßmara GENERAL WEBCAM
+2026-10-08 19:13:11,320 INFO envÝo a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+[1] CAT 0.992 | pre 8.3 ms | inf 7.8 ms | 79714e50-4035-483b-aec0-aaceb0572f20
+2026-10-08 19:13:13,683 INFO captura 79714e50-4035-483b-aec0-aaceb0572f20 cat 0.9920
+2026-10-08 19:13:13,973 INFO esperando 1 envÝos en cola (mßx. 60 s)
+2026-10-08 19:13:17,923 INFO envÝo 79714e50-4035-483b-aec0-aaceb0572f20 sent (3346 ms)
+2026-10-08 19:13:17,923 INFO fin: 1 capturas en esta sesi¾n
