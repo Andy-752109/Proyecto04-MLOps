@@ -1,0 +1,50 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Consultar",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances", "ec2:DescribeInstanceStatus",
+        "ec2:DescribeSecurityGroups", "ec2:DescribeSecurityGroupRules",
+        "ec2:DescribeAddresses",
+        "ssm:DescribeInstanceInformation", "ssm:DescribeSessions",
+        "ssm:GetConnectionStatus", "ssm:ListCommands",
+        "ssm:ListCommandInvocations", "ssm:GetCommandInvocation"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PrenderApagarPortal",
+      "Effect": "Allow",
+      "Action": ["ec2:StartInstances", "ec2:StopInstances", "ec2:RebootInstances"],
+      "Resource": "arn:aws:ec2:us-east-1:222629887955:instance/i-0c333de1158e247e9"
+    },
+    {
+      "Sid": "SessionManagerYComandos",
+      "Effect": "Allow",
+      "Action": ["ssm:StartSession", "ssm:SendCommand"],
+      "Resource": [
+        "arn:aws:ec2:us-east-1:222629887955:instance/i-0c333de1158e247e9",
+        "arn:aws:ssm:us-east-1:222629887955:document/SSM-SessionManagerRunShell",
+        "arn:aws:ssm:us-east-1::document/AWS-RunShellScript"
+      ]
+    },
+    {
+      "Sid": "CerrarSesiones",
+      "Effect": "Allow",
+      "Action": ["ssm:TerminateSession", "ssm:ResumeSession"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IPsDelPortal",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:UpdateSecurityGroupRuleDescriptionsIngress"
+      ],
+      "Resource": "arn:aws:ec2:us-east-1:222629887955:security-group/sg-04a2b1b39342ca35e"
+    }
+  ]
+}
