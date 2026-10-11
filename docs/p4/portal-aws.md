@@ -79,20 +79,35 @@ P3 lee cada paquete por su `VersionId` exacto (ver `app/storage/model_store.py`)
 
 ### Security group
 
+**Puerto 80 abierto, acceso con basic auth (decisión de PM, ver #36).** Para que el
+profesor no tenga que pasar su IP, el portal queda abierto a cualquier IP y protegido con
+usuario y contraseña en nginx (ver [Basic auth](#basic-auth)). El puerto se abrió solo
+después de comprobar que sin contraseña responde 401.
+
 | Dirección | Puerto | Origen |
 |---|---|---|
-| Entrada | TCP 80 | solo las IP del equipo y del profesor (`/32`), una regla por IP |
+| Entrada | TCP 80 | `0.0.0.0/0` (`publico-basic-auth`), con basic auth obligatorio |
+| Entrada | TCP 80 | reglas `/32` del equipo (opcionales; redundantes con la pública) |
 | Entrada | 22 (SSH) | **cerrado**: no hay regla; se usa Session Manager |
 | Salida | todo | (necesario para jalar imágenes de Docker, S3 y SSM) |
 
-Nada está abierto a `0.0.0.0/0`; los scripts rechazan ese CIDR y cualquier rango menor a `/24`.
-Las IP no se guardan en el repo: cada regla lleva como descripción el nombre de su dueño
-(`karen`, `profe`, …) y se administran con
+Los demás puertos del portal (3100, 3306, 5050, 8080, 8100, 9000, 9001) no tienen regla y
+además Compose no los publica en AWS. La regla pública se agregó con la CLI, porque
+`portal-allow-ip.sh` rechaza `0.0.0.0/0` a propósito:
+
+```bash
+aws ec2 authorize-security-group-ingress --group-id sg-04a2b1b39342ca35e   --ip-permissions 'IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges=[{CidrIp=0.0.0.0/0,Description=publico-basic-auth}]'
+```
+
+Para volver a cerrarlo a IP concretas: `aws ec2 revoke-security-group-ingress --group-id
+sg-04a2b1b39342ca35e --protocol tcp --port 80 --cidr 0.0.0.0/0`, y dar de alta las IP con
+el script. Las IP no se guardan en el repo: cada regla `/32` lleva como descripción el nombre
+de su dueño (`karen`, `profe`, …) y se administran con
 [`scripts/aws/portal-allow-ip.sh`](../../scripts/aws/portal-allow-ip.sh).
 
 #### Las IP no son fijas
 
-Las IP de casa, de datos móviles y de muchas redes cambian al reiniciar el módem, al cambiar
+Solo aplica si se vuelve a cerrar el puerto a IP concretas. Las IP de casa, de datos móviles y de muchas redes cambian al reiniciar el módem, al cambiar
 de red o con el tiempo. Si el portal deja de responder a alguien, casi siempre es que su IP
 cambió. Cada quien consulta la suya con `curl -s https://checkip.amazonaws.com` y quien
 tenga el permission set `MLOpsP4Portal` (ver [Acceso del equipo](#acceso-del-equipo)) la
@@ -369,3 +384,54 @@ $C down                                 # detener (los volúmenes se conservan)
 
 Para apagar la máquina y dejar de pagar cómputo, ver [Encender y apagar](#encender-y-apagar):
 al volver a encenderla, Docker arranca solo y los contenedores también (`unless-stopped`).
+
+### Verificación (evidencia de P4-15)
+
+Despliegue del 11 de octubre de 2026 (commit `5cd4ee0`), en `http://18.213.105.30`.
+
+**Basic auth y puertos, desde fuera de AWS:**
+
+```text
+$ curl -s -o /dev/null -w '%{http_code}' http://18.213.105.30/                         # 401
+$ curl -s -o /dev/null -w '%{http_code}' -u evaluador:incorrecta http://18.213.105.30/  # 401
+$ curl -sI http://18.213.105.30/ | grep -i www-auth
+WWW-Authenticate: Basic realm="Capturas Edge"
+```
+
+Lo mismo (401) para `/api/health`, `/ml-api/health` y `/ml-api/edge/captures`. Los puertos
+22, 443, 3100, 3306, 5050, 8080, 8100, 9000 y 9001 no responden.
+
+**Con usuario y contraseña** (dentro de la EC2, leyendo el `.env` sin imprimirlo):
+
+```text
+/ 200
+/api/health 200
+/ml-api/health 200            {"status":"ok"}
+ml-api: INFO:botocore.credentials:Found credentials from IAM Role: mlops-p4-portal-role
+```
+
+`docker compose ps`: `frontend`, `backend`, `ml-api`, `mariadb` (healthy) y `minio`, todos
+`Up`. Sin errores de credenciales ni `ProfileNotFound` en los logs de `ml-api`.
+
+**Capturas reales y captura nueva.** Capturas Edge lista las capturas del bucket de la más
+reciente a la más antigua, con la imagen firmada por el rol de la instancia (HTTP 200). Cuatro
+capturas nuevas de `edge-laptop-01` (11 oct, modelo `1.0.0-int8`) aparecieron arriba al
+pulsar Actualizar, con los mismos datos que imprimió la app edge:
+
+| capture_id | captured_at (UTC) | Clase | Confianza | Envío |
+|---|---|---|---|---|
+| `015513c6-2ef3-4000-9e1a-45cdf4358fd5` | 23:39:38 | dog | 0.9987 | sent (1461 ms) |
+| `c5a3b470-dc0e-4cb5-a161-e4805aa0d6c5` | 23:39:20 | dog | 0.9054 | sent (2549 ms) |
+| `48289c2d-f2c6-4d09-899a-104a2004d2f6` | 23:31:15 | dog | 0.9054 | sent (1291 ms) |
+| `085a6b5a-ad05-4133-b0b1-ac9a1bc03dc7` | 23:30:46 | cat | 0.8109 | sent (3427 ms) |
+
+Las cuatro fotos eran del mismo perro, mostrado en pantalla; `085a6b5a…` es un error real del
+clasificador y se deja visible.
+
+**Reinicio.** `aws ec2 reboot-instances` a las 22:11:48 UTC: sin intervención, los cinco
+contenedores volvieron (`unless-stopped`), el portal respondió 401 desde fuera en ~20 s y,
+con contraseña, `/`, `/api/health` y `/ml-api/health` en 200 con las capturas de S3; el swap
+siguió activo.
+
+**Security group final:** TCP 80 `0.0.0.0/0` (`publico-basic-auth`) y el `/32` de `karen`;
+sin SSH.
