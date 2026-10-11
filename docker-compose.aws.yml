@@ -1,0 +1,72 @@
+# P4-15: despliegue del portal en la EC2 de P4-14 (ver docs/p4/portal-aws.md).
+# Override de docker-compose.yml; el compose local no cambia.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.aws.yml up -d --build
+#
+# Solo levanta lo que el portal necesita (frontend, backend, mariadb, minio y
+# ml-api). El resto queda en el perfil `local` y no arranca aquí. Hacia afuera
+# solo se publica el puerto 80, siempre detrás de basic auth.
+
+services:
+  frontend:
+    depends_on: !override
+      - backend
+      - ml-api
+    ports: !override
+      - "80:80"
+    environment:
+      PORTAL_USER: ${PORTAL_USER:?Define PORTAL_USER en .env}
+      PORTAL_PASSWORD: ${PORTAL_PASSWORD:?Define PORTAL_PASSWORD en .env}
+    # Genera el htpasswd a partir del .env antes de arrancar nginx; sin
+    # usuario o contraseña el contenedor no arranca (nunca queda abierto).
+    entrypoint: ["/bin/sh", "/portal-auth/init.sh"]
+    command: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - ./deploy/aws/basic-auth-init.sh:/portal-auth/init.sh:ro
+      # Nivel `http`: aplica a todo el server, incluidas /api/ y /ml-api/.
+      - ./deploy/aws/basic-auth.conf:/etc/nginx/conf.d/00-basic-auth.conf:ro
+    restart: unless-stopped
+
+  backend:
+    ports: !reset []
+    restart: unless-stopped
+
+  mariadb:
+    ports: !reset []
+    restart: unless-stopped
+
+  minio:
+    # `minio/minio` ya no se puede jalar de Docker Hub ("pull access denied",
+    # 11 oct 2026) y `quay.io/minio/minio` pide login. Chainguard publica la
+    # misma versión de MinIO, mantenida y sin root.
+    image: cgr.dev/chainguard/minio:latest
+    ports: !reset []
+    restart: unless-stopped
+
+  # Sin SSO en la EC2: sin ~/.aws ni AWS_PROFILE, boto3 toma las credenciales
+  # del rol de instancia (mlops-p4-portal-role, solo lectura) por IMDSv2.
+  # Sin MLflow aquí: Capturas Edge y Models no lo usan.
+  ml-api:
+    depends_on: !override
+      mariadb:
+        condition: service_healthy
+    environment:
+      AWS_PROFILE: !reset null
+    volumes: !override
+      - ./data/derived:/app/data/derived:ro
+      - ./reports:/app/reports:ro
+      - ./models:/app/models
+    restart: unless-stopped
+
+  app:
+    profiles: [local]
+  copilot:
+    profiles: [local]
+  mariadb-mlflow-db:
+    profiles: [local]
+  minio-mlflow-bucket:
+    profiles: [local]
+  mlflow:
+    profiles: [local]
+  trainer-worker:
+    profiles: [local]
