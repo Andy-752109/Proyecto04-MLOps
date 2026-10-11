@@ -96,14 +96,15 @@ Las IP no se guardan en el repo: cada regla lleva como descripción el nombre de
 Las IP de casa, de datos móviles y de muchas redes cambian al reiniciar el módem, al cambiar
 de red o con el tiempo. Si el portal deja de responder a alguien, casi siempre es que su IP
 cambió. Cada quien consulta la suya con `curl -s https://checkip.amazonaws.com` y quien
-administre la cuenta la actualiza (el rol `MLOpsP3` no puede modificar el security group).
+tenga el permission set `MLOpsP4Portal` (ver [Acceso del equipo](#acceso-del-equipo)) la
+actualiza; el rol `MLOpsP3` no puede modificar el security group.
 
 - **Equipo:** al cambiar la IP, se reemplaza la del dueño; el script quita la anterior.
 - **Profesor:** si entra desde la red del ITESO, abrir su IP o rango de salida (pedirlo a
   TI; mínimo `/24`). Si entra desde otra red, agregar su IP el día de la revisión y
   quitarla después.
 
-Se ejecuta con un perfil con permisos sobre EC2 (no `MLOpsP3`):
+Se ejecuta con un perfil con `MLOpsP4Portal` (o administrador); `MLOpsP3` no sirve:
 
 ```bash
 export AWS_PROFILE=<perfil-admin>
@@ -132,8 +133,79 @@ Por eso **la máquina se apaga cuando no se usa**. Cada hora encendida cuesta ~U
 con los USD 10 del presupuesto alcanzan unas 95 h de uso al mes además de lo fijo.
 
 AWS Budgets: `mlops-p4-portal-mensual`, USD 10 al mes, con aviso por correo al 80 % del
-gasto real y cuando el pronóstico supere el 100 %. Además de la dueña de la cuenta,
-recibe el aviso el profesor. Se crea con `BUDGET_EMAIL` (varios correos separados por coma).
+gasto real y cuando el pronóstico supere el 100 %. El aviso llega solo a la dueña de la
+cuenta (y a quien ella añada del equipo); el profesor **no** recibe correos de facturación.
+Se crea con `BUDGET_EMAIL` (varios correos separados por coma).
+
+### Acceso del equipo
+
+El acceso a la EC2 se da con un permission set propio de IAM Identity Center, para no ampliar
+los permisos de todo el equipo (`MLOpsP3` no se modifica).
+
+| Campo | Valor |
+|---|---|
+| Permission set | `MLOpsP4Portal` |
+| Cuenta | `222629887955` |
+| Asignado a | Ale (revisión y despliegue del portal, ticket #37) y Karen (uso diario, en lugar del usuario administrador) |
+| Alcance | solo la instancia `i-0c333de1158e247e9` y el security group `sg-04a2b1b39342ca35e` |
+
+Con él se puede entrar a la EC2 por Session Manager, ejecutar comandos, prenderla, apagarla y
+reiniciarla, y agregar o quitar IP con `portal-allow-ip.sh`. No permite nada de IAM, no escribe
+en S3 ni crea recursos. La política en línea vive en
+[`scripts/aws/portal-permission-set-policy.json`](../../scripts/aws/portal-permission-set-policy.json):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Consultar",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances", "ec2:DescribeInstanceStatus",
+        "ec2:DescribeSecurityGroups", "ec2:DescribeSecurityGroupRules",
+        "ec2:DescribeAddresses",
+        "ssm:DescribeInstanceInformation", "ssm:DescribeSessions",
+        "ssm:GetConnectionStatus", "ssm:ListCommands",
+        "ssm:ListCommandInvocations", "ssm:GetCommandInvocation"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PrenderApagarPortal",
+      "Effect": "Allow",
+      "Action": ["ec2:StartInstances", "ec2:StopInstances", "ec2:RebootInstances"],
+      "Resource": "arn:aws:ec2:us-east-1:222629887955:instance/i-0c333de1158e247e9"
+    },
+    {
+      "Sid": "SessionManagerYComandos",
+      "Effect": "Allow",
+      "Action": ["ssm:StartSession", "ssm:SendCommand"],
+      "Resource": [
+        "arn:aws:ec2:us-east-1:222629887955:instance/i-0c333de1158e247e9",
+        "arn:aws:ssm:us-east-1:222629887955:document/SSM-SessionManagerRunShell",
+        "arn:aws:ssm:us-east-1::document/AWS-RunShellScript"
+      ]
+    },
+    {
+      "Sid": "CerrarSesiones",
+      "Effect": "Allow",
+      "Action": ["ssm:TerminateSession", "ssm:ResumeSession"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IPsDelPortal",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:UpdateSecurityGroupRuleDescriptionsIngress"
+      ],
+      "Resource": "arn:aws:ec2:us-east-1:222629887955:security-group/sg-04a2b1b39342ca35e"
+    }
+  ]
+}
+```
 
 ### Encender y apagar
 
