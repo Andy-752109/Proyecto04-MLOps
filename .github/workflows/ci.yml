@@ -179,6 +179,23 @@ jobs:
           MINIO_ROOT_PASSWORD: ci
           AWS_PROFILE: ci
         run: docker compose config --quiet
+      - name: Validar el override de AWS (P4-15)
+        # `!override` y `!reset` exigen Compose >= 2.24. Además se comprueba que sin
+        # PORTAL_PASSWORD el override no levanta: el portal nunca queda sin basic auth.
+        env:
+          MARIADB_ROOT_PASSWORD: ci
+          MINIO_ROOT_USER: ci
+          MINIO_ROOT_PASSWORD: ci
+          AWS_PROFILE: ci
+          PORTAL_USER: ci
+          PORTAL_PASSWORD: ci
+        run: |
+          docker compose version
+          docker compose -f docker-compose.yml -f docker-compose.aws.yml config --quiet
+          if PORTAL_PASSWORD= docker compose -f docker-compose.yml -f docker-compose.aws.yml config --quiet 2>/dev/null; then
+            echo "El override levantó sin PORTAL_PASSWORD" >&2
+            exit 1
+          fi
 
   quality-gate:
     name: Quality gate (fixture)

@@ -1,9 +1,8 @@
-# Portal en AWS (P4-14)
+# Portal en AWS (P4-14 y P4-15)
 
 El profesor pidió que Capturas Edge esté **desplegada en AWS** (rúbrica 5.1, requisito M3).
-Este documento describe dónde corre el portal. Esta primera parte cubre la
-**infraestructura** (P4-14); el despliegue del portal sobre ella llega en los tickets
-siguientes.
+Este documento describe dónde corre el portal: la **infraestructura** (P4-14) y el
+**despliegue** del portal sobre ella (P4-15, ver [Despliegue](#despliegue-p4-15)).
 
 ## Infraestructura
 
@@ -80,20 +79,35 @@ P3 lee cada paquete por su `VersionId` exacto (ver `app/storage/model_store.py`)
 
 ### Security group
 
+**Puerto 80 abierto, acceso con basic auth (decisión de PM, ver #36).** Para que el
+profesor no tenga que pasar su IP, el portal queda abierto a cualquier IP y protegido con
+usuario y contraseña en nginx (ver [Basic auth](#basic-auth)). El puerto se abrió solo
+después de comprobar que sin contraseña responde 401.
+
 | Dirección | Puerto | Origen |
 |---|---|---|
-| Entrada | TCP 80 | solo las IP del equipo y del profesor (`/32`), una regla por IP |
+| Entrada | TCP 80 | `0.0.0.0/0` (`publico-basic-auth`), con basic auth obligatorio |
+| Entrada | TCP 80 | reglas `/32` del equipo (opcionales; redundantes con la pública) |
 | Entrada | 22 (SSH) | **cerrado**: no hay regla; se usa Session Manager |
 | Salida | todo | (necesario para jalar imágenes de Docker, S3 y SSM) |
 
-Nada está abierto a `0.0.0.0/0`; los scripts rechazan ese CIDR y cualquier rango menor a `/24`.
-Las IP no se guardan en el repo: cada regla lleva como descripción el nombre de su dueño
-(`karen`, `profe`, …) y se administran con
+Los demás puertos del portal (3100, 3306, 5050, 8080, 8100, 9000, 9001) no tienen regla y
+además Compose no los publica en AWS. La regla pública se agregó con la CLI, porque
+`portal-allow-ip.sh` rechaza `0.0.0.0/0` a propósito:
+
+```bash
+aws ec2 authorize-security-group-ingress --group-id sg-04a2b1b39342ca35e   --ip-permissions 'IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges=[{CidrIp=0.0.0.0/0,Description=publico-basic-auth}]'
+```
+
+Para volver a cerrarlo a IP concretas: `aws ec2 revoke-security-group-ingress --group-id
+sg-04a2b1b39342ca35e --protocol tcp --port 80 --cidr 0.0.0.0/0`, y dar de alta las IP con
+el script. Las IP no se guardan en el repo: cada regla `/32` lleva como descripción el nombre
+de su dueño (`karen`, `profe`, …) y se administran con
 [`scripts/aws/portal-allow-ip.sh`](../../scripts/aws/portal-allow-ip.sh).
 
 #### Las IP no son fijas
 
-Las IP de casa, de datos móviles y de muchas redes cambian al reiniciar el módem, al cambiar
+Solo aplica si se vuelve a cerrar el puerto a IP concretas. Las IP de casa, de datos móviles y de muchas redes cambian al reiniciar el módem, al cambiar
 de red o con el tiempo. Si el portal deja de responder a alguien, casi siempre es que su IP
 cambió. Cada quien consulta la suya con `curl -s https://checkip.amazonaws.com` y quien
 tenga el permission set `MLOpsP4Portal` (ver [Acceso del equipo](#acceso-del-equipo)) la
@@ -215,7 +229,7 @@ ID=$(aws ec2 describe-instances \
   --filters Name=tag:Name,Values=mlops-p4-portal Name=instance-state-name,Values=running,stopped \
   --query 'Reservations[0].Instances[0].InstanceId' --output text)
 
-# Encender (la Elastic IP se conserva; Docker arranca solo, los contenedores hay que levantarlos)
+# Encender (la Elastic IP se conserva; Docker y los contenedores del portal arrancan solos)
 aws ec2 start-instances --instance-ids "$ID" && aws ec2 wait instance-running --instance-ids "$ID"
 aws ec2 describe-instances --instance-ids "$ID" --query 'Reservations[0].Instances[0].[State.Name,PublicIpAddress]' --output text
 
@@ -280,3 +294,178 @@ Tras el arranque: `docker --version` → 25.0.14, `docker compose version` → v
 Configuración comprobada con la CLI: el security group tiene una única regla de entrada
 (TCP 80, un `/32`), `HttpTokens=required`, `HttpPutResponseHopLimit=2`, instancia
 `running` con la Elastic IP asociada y el agente de SSM en línea.
+
+## Despliegue (P4-15)
+
+El portal corre en la EC2 con
+[`docker-compose.aws.yml`](../../docker-compose.aws.yml), un override del compose local
+(que no cambia). Usa `!override` y `!reset`, que exigen **Docker Compose 2.24 o superior**
+(la EC2 tiene v2.29.7); el CI valida el override y que no levante sin `PORTAL_PASSWORD`:
+
+| Qué | Local (`docker-compose.yml`) | AWS (con el override) |
+|---|---|---|
+| Servicios | todos | solo `frontend`, `backend`, `mariadb`, `minio` y `ml-api`; el resto queda en el perfil `local` |
+| Puertos publicados | 8080, 3100, 3306, 9000/9001, 5050 | solo **80** (frontend) |
+| Credenciales de AWS en `ml-api` | perfil SSO (`~/.aws` + `AWS_PROFILE`) | rol de instancia `mlops-p4-portal-role` por IMDSv2; sin `~/.aws` ni `AWS_PROFILE` |
+| Acceso | libre | **basic auth** obligatorio en nginx para todo el sitio |
+| Reinicio | `on-failure` | `unless-stopped`: vuelve solo tras reiniciar la EC2 |
+| MinIO | `minio/minio` | `cgr.dev/chainguard/minio` (ver nota) |
+
+Sin MLflow en AWS: las páginas que lo usan (Experiments, Training) muestran error;
+Capturas Edge y Models no lo necesitan. En `ml-api`, `MLFLOW_HTTP_REQUEST_MAX_RETRIES=0` y
+`MLFLOW_HTTP_REQUEST_TIMEOUT=5` hacen que ese error sea inmediato: con los reintentos por
+defecto (~4 min) esas rutas congelaban todo `ml-api` y daban 504 también en Capturas Edge
+(diagnóstico en el PR #40). `ml-api` tarda unos 2–3 minutos en arrancar
+(importa torch); mientras tanto `/ml-api/` responde 502.
+
+> **MinIO.** Desde octubre de 2026 `minio/minio` ya no se puede jalar de Docker Hub
+> (`pull access denied`) y `quay.io/minio/minio` pide login. El override usa la imagen de
+> Chainguard, con la misma versión de MinIO.
+
+### Basic auth
+
+[`deploy/aws/basic-auth.conf`](../../deploy/aws/basic-auth.conf) se monta en el contexto
+`http` de nginx, así que protege todo: páginas, `/api/`, `/ml-api/` y `/reports/`. Al
+arrancar, [`deploy/aws/basic-auth-init.sh`](../../deploy/aws/basic-auth-init.sh) genera el
+`htpasswd` (SHA-512) con `PORTAL_USER` y `PORTAL_PASSWORD` del `.env`. Si alguna falta,
+Compose no levanta el frontend: el portal nunca queda abierto sin contraseña.
+
+La contraseña vive solo en el `.env` de la EC2. Nunca va en Git; a la PM y al profesor se
+les comparte por privado.
+
+**Riesgo aceptado.** Sin HTTPS (fuera de alcance, ver #36), usuario y contraseña viajan en
+claro por el puerto 80, que está abierto a `0.0.0.0/0`: quien intercepte el tráfico de un
+usuario puede leerlos. Lo mitigan una contraseña aleatoria de 24 caracteres
+(`openssl rand -base64 18`), que el rol de la instancia solo puede leer S3, y un límite de
+peticiones por IP en nginx (`limit_req`: 10/s con ráfaga de 60; el exceso recibe 429) contra
+la fuerza bruta. No usar en el portal una contraseña reutilizada de otro servicio.
+
+### Primer despliegue
+
+Desde tu equipo, con el perfil de `MLOpsP4Portal`, entra por Session Manager:
+
+```bash
+aws sso login --profile mlops-p4-portal
+aws ssm start-session --profile mlops-p4-portal --region us-east-1 --target i-0c333de1158e247e9
+```
+
+Dentro de la EC2, primero 2 GB de swap (la `t3.medium` tiene 4 GB y la imagen de
+`ml-api` instala torch):
+
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+Después, como `ec2-user`:
+
+```bash
+sudo -iu ec2-user
+git clone https://github.com/Andy-752109/Proyecto04-MLOps.git portal && cd portal
+
+cat > .env <<EOF
+MARIADB_ROOT_PASSWORD=$(openssl rand -hex 32)
+MINIO_ROOT_USER=portal
+MINIO_ROOT_PASSWORD=$(openssl rand -hex 32)
+# Solo para que Compose no falle al interpolar trainer-worker, que aquí no corre;
+# ml-api lo ignora y usa el rol de la instancia.
+AWS_PROFILE=sin-sso
+PORTAL_USER=evaluador
+PORTAL_PASSWORD=$(openssl rand -base64 18)
+EOF
+chmod 600 .env
+
+docker compose -f docker-compose.yml -f docker-compose.aws.yml up -d --build
+```
+
+La primera construcción tarda varios minutos. `grep PORTAL_PASSWORD .env` muestra la contraseña para compartirla por privado.
+
+### Operación diaria
+
+```bash
+cd ~/portal
+C="docker compose -f docker-compose.yml -f docker-compose.aws.yml"
+
+$C ps                                   # estado
+$C logs -f --tail 100 ml-api            # logs (o frontend, backend…)
+git pull && $C up -d --build            # actualizar a lo último de main
+$C down                                 # detener (los volúmenes se conservan)
+```
+
+Para apagar la máquina y dejar de pagar cómputo, ver [Encender y apagar](#encender-y-apagar):
+al volver a encenderla, Docker arranca solo y los contenedores también (`unless-stopped`).
+
+### Verificación (evidencia de P4-15)
+
+Despliegue inicial del 11 de octubre de 2026 (commit `5cd4ee0`) en `http://18.213.105.30`;
+redesplegado el 12 de octubre con `e524df8` (MLflow sin reintentos, ver abajo).
+
+**Basic auth y puertos, desde fuera de AWS:**
+
+```text
+$ curl -s -o /dev/null -w '%{http_code}' http://18.213.105.30/                         # 401
+$ curl -s -o /dev/null -w '%{http_code}' -u evaluador:incorrecta http://18.213.105.30/  # 401
+$ curl -sI http://18.213.105.30/ | grep -i www-auth
+WWW-Authenticate: Basic realm="Capturas Edge"
+```
+
+Lo mismo (401) para `/api/health`, `/ml-api/health` y `/ml-api/edge/captures`. Los puertos
+22, 443, 3100, 3306, 5050, 8080, 8100, 9000 y 9001 no responden.
+
+**Con usuario y contraseña** (dentro de la EC2, leyendo el `.env` sin imprimirlo):
+
+```text
+/ 200
+/api/health 200
+/ml-api/health 200            {"status":"ok"}
+ml-api: INFO:botocore.credentials:Found credentials from IAM Role: mlops-p4-portal-role
+```
+
+`docker compose ps`: `frontend`, `backend`, `ml-api`, `mariadb` (healthy) y `minio`, todos
+`Up`. Sin errores de credenciales ni `ProfileNotFound` en los logs de `ml-api`.
+
+**Capturas reales y captura nueva.** Capturas Edge lista las capturas del bucket de la más
+reciente a la más antigua, con la imagen firmada por el rol de la instancia (HTTP 200). Cuatro
+capturas nuevas de `edge-laptop-01` (11 oct, modelo `1.0.0-int8`) aparecieron arriba al
+pulsar Actualizar, con los mismos datos que imprimió la app edge:
+
+| capture_id | captured_at (UTC) | Clase | Confianza | Envío |
+|---|---|---|---|---|
+| `015513c6-2ef3-4000-9e1a-45cdf4358fd5` | 23:39:38 | dog | 0.9987 | sent (1461 ms) |
+| `c5a3b470-dc0e-4cb5-a161-e4805aa0d6c5` | 23:39:20 | dog | 0.9054 | sent (2549 ms) |
+| `48289c2d-f2c6-4d09-899a-104a2004d2f6` | 23:31:15 | dog | 0.9054 | sent (1291 ms) |
+| `085a6b5a-ad05-4133-b0b1-ac9a1bc03dc7` | 23:30:46 | cat | 0.8109 | sent (3427 ms) |
+
+Las cuatro fotos eran del mismo perro, mostrado en pantalla; `085a6b5a…` es un error real del
+clasificador y se deja visible.
+
+**Reinicio.** `aws ec2 reboot-instances` a las 22:11:48 UTC: sin intervención, los cinco
+contenedores volvieron (`unless-stopped`), el portal respondió 401 desde fuera en ~20 s y,
+con contraseña, `/`, `/api/health` y `/ml-api/health` en 200 con las capturas de S3; el swap
+siguió activo.
+
+**Sin bloqueos por MLflow** (12 oct, tras `e524df8`; diagnóstico del 504 en el PR #40).
+Dentro de la EC2 se pidieron a la vez Experiments, Training, Models, Capturas Edge y
+`/ml-api/health`, y luego tres rondas más de Experiments + health + capturas en paralelo:
+
+```text
+inicio concurrente: 00:46:35 UTC
+404 0.316s  /ml-api/experiments/1/runs     ← falla al instante (sin MLflow); antes ~4 min
+404 0.340s  /ml-api/experiments/1/runs
+200 0.041s  /ml-api/health
+200 0.799s  /ml-api/training/jobs
+200 0.953s  /ml-api/models
+200 3.086s  /ml-api/edge/captures?limit=100
+200 3.304s  /ml-api/edge/captures
+--- 3 rondas más (Experiments + health + capturas en paralelo)
+404 0.023s / 200 0.027s / 200 2.376s
+404 0.040s / 200 0.043s / 200 2.345s
+404 0.045s / 200 0.014s / 200 2.504s
+
+504 en nginx (últimos 10 min): 0
+reintentos de MLflow en ml-api (últimos 10 min): 0
+```
+
+**Security group final:** TCP 80 `0.0.0.0/0` (`publico-basic-auth`) y el `/32` de `karen`;
+sin SSH.
