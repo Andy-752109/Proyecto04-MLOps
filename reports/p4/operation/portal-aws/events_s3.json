@@ -1,0 +1,152 @@
+[
+  {
+    "key": "edge-captures/v1/events/d9bd109d-784e-426f-acb5-8743e44fef1e.json",
+    "last_modified": "2026-10-09T00:51:06+00:00",
+    "event": {
+      "capture_id": "d9bd109d-784e-426f-acb5-8743e44fef1e",
+      "captured_at": "2026-10-09T00:51:01.835899+00:00",
+      "confidence": 0.7781667409654598,
+      "crop": {
+        "frame_height": 360,
+        "frame_width": 640,
+        "height": 288,
+        "width": 288,
+        "x": 176,
+        "y": 36
+      },
+      "device_id": "edge-laptop-01",
+      "image_key": "edge-captures/v1/images/d9bd109d-784e-426f-acb5-8743e44fef1e.jpg",
+      "inference_ms": 3.6548999923979864,
+      "model_sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392",
+      "model_version": "1.0.0-int8",
+      "predicted_class": "cat",
+      "preprocess_ms": 2.9648000054294243,
+      "probabilities": {
+        "cat": 0.7781667409654598,
+        "dog": 0.22183325903454015
+      },
+      "runtime": "onnxruntime-1.30.0",
+      "schema_version": "1"
+    }
+  },
+  {
+    "key": "edge-captures/v1/events/3e60aa20-2b0e-4ed7-bf02-2ff3f2d6f02e.json",
+    "last_modified": "2026-10-09T00:53:12+00:00",
+    "event": {
+      "capture_id": "3e60aa20-2b0e-4ed7-bf02-2ff3f2d6f02e",
+      "captured_at": "2026-10-09T00:53:06.999265+00:00",
+      "confidence": 0.9953741729229773,
+      "crop": {
+        "frame_height": 360,
+        "frame_width": 640,
+        "height": 288,
+        "width": 288,
+        "x": 176,
+        "y": 36
+      },
+      "device_id": "edge-laptop-01",
+      "image_key": "edge-captures/v1/images/3e60aa20-2b0e-4ed7-bf02-2ff3f2d6f02e.jpg",
+      "inference_ms": 7.0681999932276085,
+      "model_sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392",
+      "model_version": "1.0.0-int8",
+      "predicted_class": "dog",
+      "preprocess_ms": 4.877200000919402,
+      "probabilities": {
+        "cat": 0.004625827077022784,
+        "dog": 0.9953741729229773
+      },
+      "runtime": "onnxruntime-1.30.0",
+      "schema_version": "1"
+    }
+  },
+  {
+    "key": "edge-captures/v1/events/45730efb-5920-4eb1-9874-c41369252764.json",
+    "last_modified": "2026-10-09T00:58:23+00:00",
+    "event": {
+      "capture_id": "45730efb-5920-4eb1-9874-c41369252764",
+      "captured_at": "2026-10-09T00:58:18.782658+00:00",
+      "confidence": 0.998462219744942,
+      "crop": {
+        "frame_height": 360,
+        "frame_width": 640,
+        "height": 288,
+        "width": 288,
+        "x": 176,
+        "y": 36
+      },
+      "device_id": "edge-laptop-01",
+      "image_key": "edge-captures/v1/images/45730efb-5920-4eb1-9874-c41369252764.jpg",
+      "inference_ms": 10.92380000045523,
+      "model_sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392",
+      "model_version": "1.0.0-int8",
+      "predicted_class": "cat",
+      "preprocess_ms": 8.268799996585585,
+      "probabilities": {
+        "cat": 0.998462219744942,
+        "dog": 0.0015377802550579764
+      },
+      "runtime": "onnxruntime-1.30.0",
+      "schema_version": "1"
+    }
+  },
+  {
+    "key": "edge-captures/v1/events/015513c6-2ef3-4000-9e1a-45cdf4358fd5.json",
+    "last_modified": "2026-10-11T23:39:37+00:00",
+    "event": {
+      "capture_id": "015513c6-2ef3-4000-9e1a-45cdf4358fd5",
+      "captured_at": "2026-10-11T23:39:38.903572+00:00",
+      "confidence": 0.9987416300151589,
+      "crop": {
+        "frame_height": 360,
+        "frame_width": 640,
+        "height": 288,
+        "width": 288,
+        "x": 176,
+        "y": 36
+      },
+      "device_id": "edge-laptop-01",
+      "image_key": "edge-captures/v1/images/015513c6-2ef3-4000-9e1a-45cdf4358fd5.jpg",
+      "inference_ms": 3.2151000341400504,
+      "model_sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392",
+      "model_version": "1.0.0-int8",
+      "predicted_class": "dog",
+      "preprocess_ms": 1.732999982777983,
+      "probabilities": {
+        "cat": 0.0012583699848409738,
+        "dog": 0.9987416300151589
+      },
+      "runtime": "onnxruntime-1.30.0",
+      "schema_version": "1"
+    }
+  },
+  {
+    "key": "edge-captures/v1/events/0ee4aa1b-52d1-49db-8265-e042d954c4e5.json",
+    "last_modified": "2026-10-12T01:38:16+00:00",
+    "event": {
+      "capture_id": "0ee4aa1b-52d1-49db-8265-e042d954c4e5",
+      "captured_at": "2026-10-12T01:38:06.100136+00:00",
+      "confidence": 0.9990685930134059,
+      "crop": {
+        "frame_height": 360,
+        "frame_width": 640,
+        "height": 288,
+        "width": 288,
+        "x": 176,
+        "y": 36
+      },
+      "device_id": "edge-laptop-01",
+      "image_key": "edge-captures/v1/images/0ee4aa1b-52d1-49db-8265-e042d954c4e5.jpg",
+      "inference_ms": 184.45290002273396,
+      "model_sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392",
+      "model_version": "1.0.0-int8",
+      "predicted_class": "cat",
+      "preprocess_ms": 82.63739995891228,
+      "probabilities": {
+        "cat": 0.9990685930134059,
+        "dog": 0.0009314069865940385
+      },
+      "runtime": "onnxruntime-1.30.0",
+      "schema_version": "1"
+    }
+  }
+]
