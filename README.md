@@ -2,11 +2,11 @@
 
 ## Proyecto 4 — Clasificación en Edge
 
-P4 lleva el clasificador `cat`/`dog` de P3 (`1.0.0`, PyTorch) a una laptop Windows 10 con cámara USB. Convierte el checkpoint a ONNX FP32, verifica paridad y aplica cuantización estática INT8 QDQ por canal (`1.0.0-int8`). La cámara y la inferencia funcionan localmente; cada captura guarda fotografía y evento antes de intentar el envío asíncrono a S3. `ml-api` lee los eventos de S3 y el portal los muestra en **Capturas Edge**.
+P4 lleva el clasificador `cat`/`dog` de P3 (`1.0.0`, PyTorch) a una laptop Windows 10 con cámara USB. Convierte el checkpoint a ONNX FP32, verifica paridad y aplica cuantización estática INT8 QDQ por canal (`1.0.0-int8`). La cámara y la inferencia funcionan localmente; cada captura guarda fotografía y evento antes de intentar el envío asíncrono a S3. `ml-api` lee los eventos de S3 y el portal de evaluación, desplegado en **AWS EC2 (`us-east-1`)**, los muestra en **Capturas Edge** ([despliegue y acceso](docs/p4/portal-aws.md)).
 
 ### Requisitos y preparación desde un clon limpio
 
-En la laptop `edge-laptop-01`: Windows 10 de 64 bits, Python 3.12 de 64 bits, cámara USB `GENERAL WEBCAM`, Git, AWS CLI v2 y acceso SSO al perfil local `mlops-p3`. ONNX Runtime 1.30.0 necesita Microsoft Visual C++ Redistributable x64; véase [decisión de runtime](docs/p4/decision-runtime.md). Para recuperar y convertir el original también se necesitan `uv` y DVC 3.67.1 con S3. En la computadora que abre el portal se necesitan Docker Desktop y Compose, el perfil SSO y las variables locales de [`.env.example`](.env.example). No se necesitan claves AWS permanentes.
+En la laptop `edge-laptop-01`: Windows 10 de 64 bits, Python 3.12 de 64 bits, cámara USB `GENERAL WEBCAM`, Git, AWS CLI v2 y acceso SSO al perfil local `mlops-p3`. ONNX Runtime 1.30.0 necesita Microsoft Visual C++ Redistributable x64; véase [decisión de runtime](docs/p4/decision-runtime.md). Para recuperar y convertir el original también se necesitan `uv` y DVC 3.67.1 con S3. Para abrir el portal de evaluación en AWS basta un navegador y las credenciales del portal, entregadas al evaluador por privado. Docker Desktop, Compose, el perfil SSO y las variables locales de [`.env.example`](.env.example) se necesitan únicamente para la alternativa de desarrollo local. No se necesitan claves AWS permanentes.
 
 En PowerShell, clona el repositorio y prepara la laptop desde su raíz:
 
@@ -71,7 +71,19 @@ En modo manual, Enter captura y `q` sale. `run` ocupa esa terminal; ejecuta `sta
 
 ### Abrir Capturas Edge y verificar una captura
 
-En la computadora de desarrollo, desde la raíz del clon, configura `.env` a partir de `.env.example` con valores **locales** para MariaDB y MinIO y `AWS_PROFILE=mlops-p3`. Inicia SSO en esa computadora y después los servicios:
+Para la evaluación, abre **<http://18.213.105.30/edge/captures>** en un navegador. El portal corre en AWS EC2 (`us-east-1`) y solicita usuario y contraseña mediante autenticación básica; se entregan al evaluador por privado. Consulta la [guía del portal AWS](docs/p4/portal-aws.md) para el despliegue y el acceso. Busca el mismo `capture_id` de `python -m edge status` o de `edge/data/captures.jsonl`. El frontend consulta S3 por medio de `ml-api`; no requiere Docker ni SSO en la computadora del evaluador.
+
+Para verificar S3 en modo lectura desde un equipo con el perfil SSO `mlops-p3`, sustituye el marcador por un UUID real. No publiques respuestas completas de la API del portal, que contienen URLs prefirmadas:
+
+```powershell
+$CaptureId = '<capture_id>'
+aws s3 cp "s3://mlops-p4-edge-captures-222629887955/edge-captures/v1/events/${CaptureId}.json" - --profile mlops-p3
+aws s3api head-object --bucket mlops-p4-edge-captures-222629887955 --key "edge-captures/v1/images/${CaptureId}.jpg" --profile mlops-p3
+```
+
+Compara `capture_id`, `predicted_class`, `confidence`, `captured_at`, `device_id` y `model_version` del evento local y del JSON S3 con la tarjeta de Capturas Edge en AWS; comprueba `image_key` en los JSON y la fotografía en la tarjeta. `head-object` confirma la existencia de la fotografía. Si no aparece el ID entre los resultados recientes, consulta la evidencia registrada antes de interpretarlo como pérdida del objeto. La [trazabilidad E2E registrada](reports/p4/operation/trazabilidad.md) muestra cinco ejemplos de la validación local P4-12; la [verificación del despliegue AWS](docs/p4/portal-aws.md#verificación-evidencia-de-p4-15) registra capturas visibles en EC2. Si falla la cámara, ejecuta `python -m edge cameras` y corrige `camera.name`; si falla el modelo, comprueba `status`, descarga y SHA; si falla S3, renueva SSO, revisa bucket/permisos y usa `retry --pending`; si falla el portal AWS, consulta la guía de despliegue y avisa al equipo responsable. Más detalle en [integración AWS](docs/p4/integracion-edge-aws.md), [validación E2E](docs/p4/validacion-e2e.md), [ficha de entrega](docs/p4/ficha-entrega.md), [guion de demo](docs/p4/guion-demo.md) e [índice de evidencias](reports/p4/README.md).
+
+Como alternativa de **desarrollo local**, en la computadora de desarrollo configura `.env` a partir de `.env.example` con valores locales para MariaDB y MinIO y `AWS_PROFILE=mlops-p3`. Inicia SSO y después los servicios:
 
 ```powershell
 Copy-Item .env.example .env
@@ -79,17 +91,7 @@ aws sso login --profile mlops-p3
 docker compose up -d --build frontend ml-api
 ```
 
-Abre `http://localhost:8080/edge/captures`. El portal consulta `GET /ml-api/edge/captures` mediante `ml-api`, que lee el bucket configurado por `EDGE_CAPTURES_BUCKET` en Compose. Busca el mismo `capture_id` de `python -m edge status` o de `edge/data/captures.jsonl`. Para verificar S3 en modo lectura, sustituye el marcador por un UUID real; nunca publiques la respuesta completa de la API, que contiene URLs prefirmadas:
-
-```powershell
-$CaptureId = '<capture_id>'
-aws s3 cp "s3://mlops-p4-edge-captures-222629887955/edge-captures/v1/events/${CaptureId}.json" - --profile mlops-p3
-aws s3api head-object --bucket mlops-p4-edge-captures-222629887955 --key "edge-captures/v1/images/${CaptureId}.jpg" --profile mlops-p3
-$PortalCapture = (Invoke-RestMethod -Uri 'http://localhost:8080/ml-api/edge/captures?limit=100').items | Where-Object { $_.capture_id -eq $CaptureId }
-$PortalCapture | Select-Object capture_id,predicted_class,confidence,captured_at,device_id,model_version,image_key
-```
-
-Compara `capture_id`, `predicted_class`, `confidence`, `captured_at`, `device_id`, `model_version` e `image_key` del JSON S3 con el evento local y la fila seleccionada de la API; la tarjeta del portal muestra la clase, confianza, fecha, dispositivo, versión y fotografía del mismo ID. La clave `image_key` se comprueba en el JSON y la respuesta filtrada de la API, pues no se imprime como texto en la tarjeta. `head-object` solo confirma la existencia de la fotografía. Si no aparece el ID entre los 100 resultados más recientes, no lo interpretes como pérdida del objeto: consulta la evidencia registrada. La [trazabilidad E2E registrada](reports/p4/operation/trazabilidad.md) muestra cinco ejemplos. Si falla la cámara, ejecuta `python -m edge cameras` y corrige `camera.name`; si falla el modelo, comprueba `status`, descarga y SHA; si falla S3, renueva SSO, revisa bucket/permisos y usa `retry --pending`; si falla el portal, comprueba `docker compose logs ml-api frontend` y el perfil SSO de esa computadora. Más detalle en [integración AWS](docs/p4/integracion-edge-aws.md), [validación E2E](docs/p4/validacion-e2e.md), [ficha de entrega](docs/p4/ficha-entrega.md), [guion de demo](docs/p4/guion-demo.md) e [índice de evidencias](reports/p4/README.md).
+Abre `http://localhost:8080/edge/captures` solo para desarrollo local. Si falla esa instancia local, comprueba `docker compose logs ml-api frontend` y el perfil SSO de esa computadora.
 
 ## Portal y documentación heredada de P1–P3
 
