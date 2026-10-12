@@ -299,7 +299,8 @@ Configuración comprobada con la CLI: el security group tiene una única regla d
 
 El portal corre en la EC2 con
 [`docker-compose.aws.yml`](../../docker-compose.aws.yml), un override del compose local
-(que no cambia):
+(que no cambia). Usa `!override` y `!reset`, que exigen **Docker Compose 2.24 o superior**
+(la EC2 tiene v2.29.7); el CI valida el override y que no levante sin `PORTAL_PASSWORD`:
 
 | Qué | Local (`docker-compose.yml`) | AWS (con el override) |
 |---|---|---|
@@ -331,6 +332,13 @@ Compose no levanta el frontend: el portal nunca queda abierto sin contraseña.
 
 La contraseña vive solo en el `.env` de la EC2. Nunca va en Git; a la PM y al profesor se
 les comparte por privado.
+
+**Riesgo aceptado.** Sin HTTPS (fuera de alcance, ver #36), usuario y contraseña viajan en
+claro por el puerto 80, que está abierto a `0.0.0.0/0`: quien intercepte el tráfico de un
+usuario puede leerlos. Lo mitigan una contraseña aleatoria de 24 caracteres
+(`openssl rand -base64 18`), que el rol de la instancia solo puede leer S3, y un límite de
+peticiones por IP en nginx (`limit_req`: 10/s con ráfaga de 60; el exceso recibe 429) contra
+la fuerza bruta. No usar en el portal una contraseña reutilizada de otro servicio.
 
 ### Primer despliegue
 
@@ -390,7 +398,8 @@ al volver a encenderla, Docker arranca solo y los contenedores también (`unless
 
 ### Verificación (evidencia de P4-15)
 
-Despliegue del 11 de octubre de 2026 (commit `5cd4ee0`), en `http://18.213.105.30`.
+Despliegue inicial del 11 de octubre de 2026 (commit `5cd4ee0`) en `http://18.213.105.30`;
+redesplegado el 12 de octubre con `e524df8` (MLflow sin reintentos, ver abajo).
 
 **Basic auth y puertos, desde fuera de AWS:**
 
@@ -435,6 +444,28 @@ clasificador y se deja visible.
 contenedores volvieron (`unless-stopped`), el portal respondió 401 desde fuera en ~20 s y,
 con contraseña, `/`, `/api/health` y `/ml-api/health` en 200 con las capturas de S3; el swap
 siguió activo.
+
+**Sin bloqueos por MLflow** (12 oct, tras `e524df8`; diagnóstico del 504 en el PR #40).
+Dentro de la EC2 se pidieron a la vez Experiments, Training, Models, Capturas Edge y
+`/ml-api/health`, y luego tres rondas más de Experiments + health + capturas en paralelo:
+
+```text
+inicio concurrente: 00:46:35 UTC
+404 0.316s  /ml-api/experiments/1/runs     ← falla al instante (sin MLflow); antes ~4 min
+404 0.340s  /ml-api/experiments/1/runs
+200 0.041s  /ml-api/health
+200 0.799s  /ml-api/training/jobs
+200 0.953s  /ml-api/models
+200 3.086s  /ml-api/edge/captures?limit=100
+200 3.304s  /ml-api/edge/captures
+--- 3 rondas más (Experiments + health + capturas en paralelo)
+404 0.023s / 200 0.027s / 200 2.376s
+404 0.040s / 200 0.043s / 200 2.345s
+404 0.045s / 200 0.014s / 200 2.504s
+
+504 en nginx (últimos 10 min): 0
+reintentos de MLflow en ml-api (últimos 10 min): 0
+```
 
 **Security group final:** TCP 80 `0.0.0.0/0` (`publico-basic-auth`) y el `/32` de `karen`;
 sin SSH.
