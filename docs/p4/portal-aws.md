@@ -311,7 +311,10 @@ El portal corre en la EC2 con
 | MinIO | `minio/minio` | `cgr.dev/chainguard/minio` (ver nota) |
 
 Sin MLflow en AWS: las páginas que lo usan (Experiments, Training) muestran error;
-Capturas Edge y Models no lo necesitan. `ml-api` tarda unos 2–3 minutos en arrancar
+Capturas Edge y Models no lo necesitan. En `ml-api`, `MLFLOW_HTTP_REQUEST_MAX_RETRIES=0` y
+`MLFLOW_HTTP_REQUEST_TIMEOUT=5` hacen que ese error sea inmediato: con los reintentos por
+defecto (~4 min) esas rutas congelaban todo `ml-api` y daban 504 también en Capturas Edge
+(diagnóstico en el PR #40). `ml-api` tarda unos 2–3 minutos en arrancar
 (importa torch); mientras tanto `/ml-api/` responde 502.
 
 > **MinIO.** Desde octubre de 2026 `minio/minio` ya no se puede jalar de Docker Hub

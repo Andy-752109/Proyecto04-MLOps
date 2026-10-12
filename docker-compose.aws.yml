@@ -52,6 +52,11 @@ services:
         condition: service_healthy
     environment:
       AWS_PROFILE: !reset null
+      # Sin MLflow aquí, Experiments y Training fallan al instante en vez de
+      # reintentar ~4 min: esas rutas son `async def` con llamadas bloqueantes
+      # y congelaban todo ml-api (504 en /health y /edge/captures, ver #40).
+      MLFLOW_HTTP_REQUEST_MAX_RETRIES: 0
+      MLFLOW_HTTP_REQUEST_TIMEOUT: 5
     volumes: !override
       - ./data/derived:/app/data/derived:ro
       - ./reports:/app/reports:ro
