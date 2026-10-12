@@ -35,15 +35,15 @@ sesión del 11 de octubre se tomaron otras tres capturas del mismo perro (`085a6
 | `events_s3.json` | Evento de cada ID leído de S3 (`aws s3 cp`) |
 | `portal_items.json` | Respuesta del portal de AWS (`GET /ml-api/edge/captures?limit=100`) para los 5 IDs, **sin `image_url`** (URL prefirmada) |
 | `trazabilidad.md` | Tabla log local / S3 / portal generada por el script |
-| `portal_aws_capturas.png` | Capturas Edge en el navegador, con la URL de AWS visible y las capturas nuevas arriba |
+| `portal_aws_capturas.png` | Capturas Edge en el navegador, con la URL de AWS visible y las dos capturas nuevas arriba (gato `0ee4aa1b…` y perro `015513c6…`) |
 
 ## Cómo se generó
 
-Con el perfil SSO de `MLOpsP3` para leer S3 y el usuario del portal en variables de entorno
+Con el perfil SSO `mlops-p3` (rol `MLOpsP3`) para leer S3 y el usuario del portal en variables de entorno
 (la contraseña se entrega por privado y no se escribe en ningún archivo):
 
 ```bash
-AWS_PROFILE=mlops-p4 PORTAL_USER=evaluador PORTAL_PASSWORD=... \
+AWS_PROFILE=mlops-p3 PORTAL_USER=evaluador PORTAL_PASSWORD=... \
   python3 scripts/p4_e2e_report.py --out reports/p4/operation/portal-aws \
   --portal http://18.213.105.30 --solo-trazabilidad \
   d9bd109d-784e-426f-acb5-8743e44fef1e 3e60aa20-2b0e-4ed7-bf02-2ff3f2d6f02e \
