@@ -11,11 +11,13 @@ Mismo patrón que `copilot/server.py`: `create_app(settings)` para pruebas,
 
 import logging
 import re
+import threading
 from collections.abc import Callable
 
 import uvicorn
 from botocore.exceptions import BotoCoreError, ClientError
 from starlette.applications import Starlette
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
@@ -172,6 +174,7 @@ def create_app(
     registry_path = settings.models_dir / "registry.json"
     active_version_path = settings.models_dir / "active_version.json"
     selection_path = settings.reports_dir / "selection.json"
+    model_activation_lock = threading.Lock()
 
     def health(_: Request) -> JSONResponse:
         return JSONResponse({"status": "ok"})
@@ -222,7 +225,8 @@ def create_app(
             return JSONResponse({"error": "grid_row debe ser str o null"}, status_code=400)
 
         try:
-            validated_config, manifest_id = validate_new_training_job(
+            validated_config, manifest_id = await run_in_threadpool(
+                validate_new_training_job,
                 dataset_release=payload["dataset_release"],
                 config=payload["config"],
                 run_kind=payload["run_kind"],
@@ -233,7 +237,8 @@ def create_app(
         except TrainingJobRejected as error:
             return JSONResponse({"error": str(error)}, status_code=400)
 
-        job = create_job(
+        job = await run_in_threadpool(
+            create_job,
             payload["dataset_release"],
             manifest_id,
             validated_config.model_dump(),
@@ -242,7 +247,7 @@ def create_app(
         )
         return JSONResponse(job.model_dump(mode="json"), status_code=201)
 
-    async def cancel_training_job_route(request: Request) -> JSONResponse:
+    def cancel_training_job_route(request: Request) -> JSONResponse:
         job_id = request.path_params["job_id"]
         try:
             job = cancel_job(job_id)
@@ -310,7 +315,7 @@ def create_app(
         return JSONResponse(detail.model_dump(mode="json"))
 
     async def set_active_model(request: Request) -> JSONResponse:
-        registry = load_registry(registry_path)
+        registry = await run_in_threadpool(load_registry, registry_path)
         if registry is None:
             return JSONResponse(
                 {"error": "Models todavía no está publicado (P3-14)"}, status_code=404
@@ -322,29 +327,38 @@ def create_app(
         version = payload.get("version") if isinstance(payload, dict) else None
         if not isinstance(version, str) or not version:
             return JSONResponse({"error": "falta version (str)"}, status_code=400)
-        try:
-            activate_version(registry, version, status_of=model_status_of)
-        except ModelVersionNotFound:
-            return JSONResponse({"error": f"no existe la versión {version}"}, status_code=404)
-        except ModelObjectMissing:
-            return JSONResponse(
-                {
-                    "error": f"el objeto de la versión {version} no existe en S3; "
-                    "no se marca como activa"
-                },
-                status_code=400,
-            )
-        write_active_version(active_version_path, version)
-        detail = build_detail(
-            registry,
-            version,
-            active_version=version,
-            selected_run_id=read_selected_run_id(selection_path),
-            status_of=model_status_of,
-            download_url_of=model_download_url_of,
-            package_info_of=model_package_info_of,
-        )
-        return JSONResponse(detail.model_dump(mode="json"))
+
+        def activate_and_respond() -> JSONResponse:
+            # write_active_version usa un nombre temporal fijo: serializar toda la
+            # secuencia evita que dos activaciones del mismo proceso lo compartan.
+            with model_activation_lock:
+                try:
+                    activate_version(registry, version, status_of=model_status_of)
+                except ModelVersionNotFound:
+                    return JSONResponse(
+                        {"error": f"no existe la versión {version}"}, status_code=404
+                    )
+                except ModelObjectMissing:
+                    return JSONResponse(
+                        {
+                            "error": f"el objeto de la versión {version} no existe en S3; "
+                            "no se marca como activa"
+                        },
+                        status_code=400,
+                    )
+                write_active_version(active_version_path, version)
+                detail = build_detail(
+                    registry,
+                    version,
+                    active_version=version,
+                    selected_run_id=read_selected_run_id(selection_path),
+                    status_of=model_status_of,
+                    download_url_of=model_download_url_of,
+                    package_info_of=model_package_info_of,
+                )
+                return JSONResponse(detail.model_dump(mode="json"))
+
+        return await run_in_threadpool(activate_and_respond)
 
     def pending(name: str):
         async def handler(_: Request) -> JSONResponse:

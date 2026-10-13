@@ -391,10 +391,32 @@ No pongas credenciales AWS en este archivo.
 docker compose up --build
 ```
 
-La imagen de Chainguard ejecuta MinIO sin root. Un volumen creado con la imagen
-anterior podría presentar problemas de permisos; en una instalación nueva
-normalmente no se requiere ninguna acción adicional. Si el entorno local es
-desechable, puedes recrear sus volúmenes después de respaldar los datos necesarios.
+La imagen de Chainguard ejecuta MinIO con UID/GID `65532`. Un volumen creado
+con la imagen anterior puede tener propietarios incompatibles. En una instalación
+nueva normalmente no se requiere ninguna acción. Para recuperar un volumen
+existente, identifica primero el nombre real del volumen montado en `/data`
+(`minio_data` es solo su nombre lógico en Compose):
+
+```bash
+docker inspect "$(docker compose ps -a -q minio)" \
+  --format '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}'
+```
+
+Detén MinIO con `docker compose stop minio` y comprueba que ningún otro
+contenedor use ese volumen. Antes de cambiar propietarios, respalda sus datos
+en un directorio fuera del repositorio y verifica el respaldo. Sustituye los
+marcadores por el volumen identificado y el directorio de respaldo:
+
+```bash
+docker run --rm -v NOMBRE_REAL_DEL_VOLUMEN:/data:ro \
+  -v /RUTA/AL/RESPALDO:/backup alpine \
+  tar -C /data -czf /backup/minio-data.tar.gz .
+docker run --rm -v NOMBRE_REAL_DEL_VOLUMEN:/data alpine \
+  chown -R 65532:65532 /data
+docker compose up -d minio
+docker compose ps minio
+curl -fsS http://localhost:9000/minio/health/live
+```
 
 Este comando levanta los servicios de MariaDB, MinIO, backend, frontend,
 pipeline `app` y Copilot. El backend espera a que MariaDB y MinIO estén listos, aplica las
@@ -413,8 +435,8 @@ Para apagar normalmente los servicios, sin borrar los datos persistidos:
 docker compose down
 ```
 
-`docker compose down -v` elimina también los volúmenes de MariaDB y MinIO.
-Úsalo únicamente cuando quieras reiniciar desde cero los datos locales.
+`docker compose down -v` elimina los volúmenes del proyecto y puede borrar los
+datos de MariaDB y MinIO. Úsalo únicamente cuando quieras reiniciar desde cero.
 
 Las credenciales locales de MariaDB/MinIO se configuran en `.env`, que está
 ignorado por Git. Usa valores propios; nunca publiques ese archivo.

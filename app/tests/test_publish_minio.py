@@ -8,7 +8,7 @@ Las pruebas que suben paquetes necesitan MinIO con versionado (varios discos):
 
     docker run -d --name minio-p3 -p 9000:9000 `
         -v /data1 -v /data2 -v /data3 -v /data4 `
-        minio/minio server "/data{1...4}"
+        cgr.dev/chainguard/minio:latest server "/data{1...4}"
 
 (en PowerShell; credenciales por defecto minioadmin/minioadmin. Sin los `-v /dataN` MinIO se queda
 esperando discos y no responde. Para quitarlo: `docker rm -fv minio-p3`.)
