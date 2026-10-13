@@ -1,0 +1,9 @@
+Proyecto Compose: p4-17-minio-test
+Imagen sintética: PNG de 1 píxel, 69 bytes
+POST http://127.0.0.1:18080/api/images: HTTP 201; image_id=1
+GET http://127.0.0.1:18080/api/images/1/file: HTTP 200; Content-Type=image/png
+SHA-256 de subida y descarga: b1ff9c8ea3a780bad09b346c423d2d0e46815926879b18e841d928376a946640
+Comparación binaria: idéntica
+Usuario del contenedor MinIO: UID 65532
+Volumen de datos de prueba: p4-17-minio-test_minio_data, montado en /data con escritura
+Resultado: lectura y escritura correctas sin modificar volúmenes anteriores

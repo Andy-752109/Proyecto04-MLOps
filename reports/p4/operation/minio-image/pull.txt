@@ -1,0 +1,64 @@
+docker compose -p p4-17-minio-test --env-file <archivo temporal con valores ficticios> -f docker-compose.yml -f reports/p4/operation/minio-image/override.yml pull --policy always minio
+Exit code: 0
+
+ Image cgr.dev/chainguard/minio:latest Pulling
+ fbaf0dceb281 Pulling fs layer 0B
+ 679ee6ab8f06 Pulling fs layer 0B
+ c678a45b3ec2 Pulling fs layer 0B
+ c2f6afa078e4 Pulling fs layer 0B
+ 2f1805e56f7c Pulling fs layer 0B
+ af806c39f94f Pulling fs layer 0B
+ 296a8eee412f Pulling fs layer 0B
+ 3edf329c2dac Pulling fs layer 0B
+ fbc0de6a4b14 Pulling fs layer 0B
+ 592e5ec1d7e1 Pulling fs layer 0B
+ 6fe411e696f6 Pulling fs layer 0B
+ c2f6afa078e4 Already exists 0B
+ 2f1805e56f7c Already exists 0B
+ 679ee6ab8f06 Download complete 0B
+ fbaf0dceb281 Download complete 0B
+ c678a45b3ec2 Download complete 0B
+ 6fe411e696f6 Downloading 1.049MB
+ af806c39f94f Downloading 2.097MB
+ 6fe411e696f6 Download complete 0B
+ af806c39f94f Downloading 4.194MB
+ af806c39f94f Downloading 7.34MB
+ af806c39f94f Downloading 8.389MB
+ 3edf329c2dac Downloading 1.049MB
+ af806c39f94f Downloading 11.36MB
+ af806c39f94f Download complete 0B
+ 3edf329c2dac Download complete 0B
+ fbc0de6a4b14 Download complete 0B
+ 296a8eee412f Downloading 1.049MB
+ 296a8eee412f Downloading 4.194MB
+ 592e5ec1d7e1 Download complete 0B
+ 296a8eee412f Downloading 6.291MB
+ 296a8eee412f Downloading 10.49MB
+ 296a8eee412f Downloading 13.63MB
+ 296a8eee412f Downloading 16.78MB
+ 296a8eee412f Downloading 18.87MB
+ 296a8eee412f Downloading 20.97MB
+ 296a8eee412f Downloading 23.07MB
+ 296a8eee412f Downloading 27.26MB
+ 296a8eee412f Downloading 30.41MB
+ 296a8eee412f Downloading 32.51MB
+ 296a8eee412f Downloading 36.7MB
+ 296a8eee412f Download complete 0B
+ 296a8eee412f Extracting 1B
+ 296a8eee412f Extracting 1B
+ 296a8eee412f Extracting 1B
+ af806c39f94f Extracting 1B
+ 296a8eee412f Pull complete 0B
+ 679ee6ab8f06 Extracting 1B
+ af806c39f94f Pull complete 0B
+ 3edf329c2dac Pull complete 0B
+ fbc0de6a4b14 Pull complete 0B
+ c2f6afa078e4 Pull complete 0B
+ 2f1805e56f7c Pull complete 0B
+ 679ee6ab8f06 Pull complete 0B
+ fbaf0dceb281 Extracting 1B
+ c678a45b3ec2 Pull complete 0B
+ 6fe411e696f6 Pull complete 0B
+ 592e5ec1d7e1 Pull complete 0B
+ fbaf0dceb281 Pull complete 0B
+ Image cgr.dev/chainguard/minio:latest Pulled

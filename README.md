@@ -434,7 +434,7 @@ docker run --name proyecto1-minio \
   -p 9000:9000 -p 9001:9001 \
   -e MINIO_ROOT_USER='REPLACE_WITH_LOCAL_MINIO_USER' \
   -e MINIO_ROOT_PASSWORD='REPLACE_WITH_LOCAL_MINIO_PASSWORD' \
-  -d minio/minio:latest server /data --console-address ":9001"
+  -d cgr.dev/chainguard/minio:latest server /data --console-address ":9001"
 ```
 
 El bucket se crea automáticamente al arrancar el backend.

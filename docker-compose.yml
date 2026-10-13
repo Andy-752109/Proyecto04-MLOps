@@ -28,11 +28,9 @@ services:
       retries: 20
 
   minio:
-    # Fuera del alcance de P3-03, pero encontrado al probarlo: `quay.io/minio/minio`
-    # (la imagen que ya estaba aquí) empezó a devolver "401 UNAUTHORIZED" al
-    # jalarla anónimamente -- probado repetido, no es un problema transitorio de
-    # esta corrida. `minio/minio` (Docker Hub) sigue siendo pública.
-    image: minio/minio:latest
+    # Chainguard permite descargar MinIO en instalaciones nuevas sin depender
+    # de una imagen de Docker Hub ya almacenada localmente.
+    image: cgr.dev/chainguard/minio:latest
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
