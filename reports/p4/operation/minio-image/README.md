@@ -27,4 +27,4 @@ Para repetir la lectura y escritura, sube un PNG sintético con `curl -F 'image=
 - [Prueba de lectura y escritura](read-write.txt): el backend cargó una imagen PNG sintética de un píxel mediante `POST /api/images` (201) y recuperó los mismos 69 bytes mediante `GET /api/images/1/file` (200); los SHA-256 coincidieron. La creación del bucket y los metadatos ocurrió solo en los volúmenes de prueba.
 - [Comprobación del portal local](portal.txt): `/`, `/edge/captures` y `/api/health` respondieron HTTP 200. La respuesta de `/edge/captures` confirma la ruta de la SPA; el contenido de capturas no pudo validarse porque no se inició `ml-api` ni se utilizaron credenciales AWS. `/ml-api/edge/captures` respondió 502 en este entorno mínimo.
 
-El proyecto Docker de prueba se dejó en ejecución para revisión, con puertos `127.0.0.1:18080`, `19000` y `19001`. No se incluyeron credenciales ni respuestas de AWS en estas evidencias.
+La prueba utilizó los puertos `127.0.0.1:18080`, `19000` y `19001`. No se incluyeron credenciales ni respuestas de AWS en estas evidencias.
