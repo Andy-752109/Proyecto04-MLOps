@@ -1,0 +1,5 @@
+NAME                          SERVICE    STATUS                   PORTS
+p4-17-minio-test-backend-1    backend    Up About a minute        3100/tcp
+p4-17-minio-test-frontend-1   frontend   Up About a minute        127.0.0.1:18080->80/tcp
+p4-17-minio-test-mariadb-1    mariadb    Up 2 minutes (healthy)   3306/tcp
+p4-17-minio-test-minio-1      minio      Up 2 minutes             127.0.0.1:19000->9000/tcp, 127.0.0.1:19001->9001/tcp

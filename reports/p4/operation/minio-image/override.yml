@@ -1,0 +1,17 @@
+services:
+  mariadb:
+    ports: !override []
+  minio:
+    ports: !override
+      - "127.0.0.1:19000:9000"
+      - "127.0.0.1:19001:9001"
+  backend:
+    ports: !override []
+    volumes: !override
+      - ./app/policies:/pipeline/policies:ro
+      - ./app/splits:/pipeline/splits:ro
+  frontend:
+    depends_on: !override
+      - backend
+    ports: !override
+      - "127.0.0.1:18080:80"

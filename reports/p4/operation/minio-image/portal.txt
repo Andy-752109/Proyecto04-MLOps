@@ -1,0 +1,6 @@
+Proyecto Compose: p4-17-minio-test
+GET http://127.0.0.1:18080/: HTTP 200, text/html
+GET http://127.0.0.1:18080/api/health: HTTP 200, status=ok, database=connected
+GET http://127.0.0.1:18080/edge/captures: HTTP 200 (ruta SPA)
+GET http://127.0.0.1:18080/ml-api/edge/captures?limit=1: HTTP 502
+Interpretación: frontend, backend y operación local con MinIO funcionan. La lista de Capturas Edge requiere ml-api y acceso al bucket S3 de AWS, no iniciados ni utilizados en esta prueba.

@@ -391,6 +391,11 @@ No pongas credenciales AWS en este archivo.
 docker compose up --build
 ```
 
+La imagen de Chainguard ejecuta MinIO sin root. Un volumen creado con la imagen
+anterior podría presentar problemas de permisos; en una instalación nueva
+normalmente no se requiere ninguna acción adicional. Si el entorno local es
+desechable, puedes recrear sus volúmenes después de respaldar los datos necesarios.
+
 Este comando levanta los servicios de MariaDB, MinIO, backend, frontend,
 pipeline `app` y Copilot. El backend espera a que MariaDB y MinIO estén listos, aplica las
 migraciones y siembra únicamente las categorías `dog` y `cat` antes de
@@ -434,7 +439,7 @@ docker run --name proyecto1-minio \
   -p 9000:9000 -p 9001:9001 \
   -e MINIO_ROOT_USER='REPLACE_WITH_LOCAL_MINIO_USER' \
   -e MINIO_ROOT_PASSWORD='REPLACE_WITH_LOCAL_MINIO_PASSWORD' \
-  -d minio/minio:latest server /data --console-address ":9001"
+  -d cgr.dev/chainguard/minio:latest server /data --console-address ":9001"
 ```
 
 El bucket se crea automáticamente al arrancar el backend.

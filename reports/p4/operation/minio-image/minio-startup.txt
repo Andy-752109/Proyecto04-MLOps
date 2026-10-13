@@ -1,0 +1,7 @@
+INFO: Formatting 1st pool, 1 set(s), 1 drives per set.
+MinIO Object Storage Server
+Version: RELEASE.2026-09-22T19-25-18Z (go1.27.2 linux/arm64)
+API: http://172.20.0.2:9000  http://127.0.0.1:9000
+WebUI: http://172.20.0.2:9001 http://127.0.0.1:9001
+HTTP /minio/health/live: 200
+HTTP /minio/health/ready: 200
