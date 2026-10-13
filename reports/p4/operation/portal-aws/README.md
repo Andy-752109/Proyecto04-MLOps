@@ -12,6 +12,10 @@ de la corrida final de P4-12 (8 de octubre), incluido uno de sus errores reales.
 están en el log local, en S3 con el evento idéntico y en el portal de AWS con los metadatos
 iguales: ver [`trazabilidad.md`](trazabilidad.md).
 
+Las fechas `captured_at` y `LastModified` de S3 están en UTC; `edge.log` usa hora local
+UTC−6. Por eso la captura del gato `0ee4aa1b…` figura como **12/10/2026 01:38 UTC** en
+el evento y como **11/10/2026 19:38 UTC−6** en el log: es la misma captura.
+
 | `capture_id` | Origen | Real | Predicho |
 |---|---|---|---|
 | `d9bd109d…` | P4-12, foto 2 | dog | cat 0.778 (error real) |
