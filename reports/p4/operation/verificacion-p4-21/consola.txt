@@ -1,0 +1,222 @@
+Corrida de verificación P4-21 (#50) en edge-laptop-01, 13 de octubre de 2026, hora local UTC-06:00.
+Salidas de consola copiadas tal cual de las dos terminales de PowerShell (A y B). Se omite el
+código de dispositivo de `aws sso login` y la salida completa de `pip`, que solo dice
+"Requirement already satisfied" para cada dependencia.
+
+=== Parte A: clon limpio y preparación según el README ===
+
+PS C:\Users\karen\p4-21> Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz"
+2026-10-13 15:22:03 -06:00
+PS C:\Users\karen\p4-21> git clone https://github.com/Andy-752109/Proyecto04-MLOps.git
+Cloning into 'Proyecto04-MLOps'...
+Receiving objects: 100% (1551/1551), 9.27 MiB | 2.15 MiB/s, done.
+Resolving deltas: 100% (577/577), done.
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> git rev-parse HEAD
+02c82d5d0eb099bf1297693e6b2e7563cacb7b51
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python --version
+Python 3.12.10
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> aws --version
+aws-cli/2.37.9 Python/3.14.6 Windows/10 exe/AMD64
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> [System.Environment]::OSVersion.VersionString
+Microsoft Windows NT 10.0.19045.0
+
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m pip install -r edge/requirements.txt
+Requirement already satisfied: jsonschema<5,>=4.23 (4.26.0)
+Requirement already satisfied: numpy<3,>=1.24 (2.5.3)
+Requirement already satisfied: pillow<13,>=10 (12.3.0)
+Requirement already satisfied: opencv-python-headless<6,>=4.8 (5.0.0.93)
+Requirement already satisfied: onnxruntime==1.30.0 (1.30.0)
+Requirement already satisfied: boto3<2,>=1.35.10 (1.43.109)
+[... resto de dependencias, todas "already satisfied" ...]
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> Copy-Item edge/config.example.yaml edge/config.yaml
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> New-Item -ItemType Directory -Force edge/models | Out-Null
+
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> aws sso login --profile mlops-p3 --use-device-code
+Successfully logged into Start URL: https://d-906661b14b.awsapps.com/start
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> aws sts get-caller-identity --profile mlops-p3
+{
+    "Account": "222629887955",
+    "Arn": "arn:aws:sts::222629887955:assumed-role/AWSReservedSSO_MLOpsP3_b4003fbadf1ac971/Ale"
+}
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge cameras
+0: GENERAL WEBCAM
+1: USB2.0 UVC HD Webcam
+
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> aws s3api get-object --bucket mlops-p3-models-222629887955 --key models/edge/1.0.0-int8/model_int8.onnx --version-id 8xfGLRI8Mlq07SyM9hsODKBfuC1c24ig --profile mlops-p3 edge/models/model_int8.onnx
+{
+    "LastModified": "2026-10-06T18:36:40+00:00",
+    "ContentLength": 11431238,
+    "VersionId": "8xfGLRI8Mlq07SyM9hsODKBfuC1c24ig",
+    "ServerSideEncryption": "AES256"
+}
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge status
+dispositivo : edge-laptop-01
+modo        : manual (intervalo 10 s)
+cámara      : GENERAL WEBCAM
+recorte     : {'center_square': 0.8}
+modelo      : C:\Users\karen\p4-21\Proyecto04-MLOps\edge\models\model_int8.onnx (1.0.0-int8, onnxruntime)
+sha256      : OK
+capturas    : 0 en C:\Users\karen\p4-21\Proyecto04-MLOps\edge\data\captures.jsonl
+bucket      : mlops-p4-edge-captures-222629887955
+envíos      : pending 0, sent 0, already_sent 0, failed 0
+
+=== Parte B: guion de demo B.1–B.9 ===
+
+--- B.1 (terminal A) ---
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge cameras
+0: GENERAL WEBCAM
+1: USB2.0 UVC HD Webcam
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge status
+[igual que al final de la parte A: sha256: OK, 0 capturas]
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz"
+2026-10-13 15:48:54 -06:00
+
+--- B.2–B.4 (terminal A) ---
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge run
+2026-10-13 15:49:18,410 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-13 15:49:18,457 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-13 15:49:18,457 INFO log C:\Users\karen\p4-21\Proyecto04-MLOps\edge\data\captures.jsonl: 0 capturas previas
+2026-10-13 15:49:18,457 INFO modo manual, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-13 15:49:18,457 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+Enter = capturar, q = salir >
+2026-10-13 15:50:28,170 INFO captura dda5c747-c802-4eb8-99a6-7338f5d702ea cat 0.9508
+[1] CAT 0.951 | pre 28.6 ms | inf 195.4 ms | dda5c747-c802-4eb8-99a6-7338f5d702ea
+Enter = capturar, q = salir > 2026-10-13 15:50:34,561 INFO envío dda5c747-c802-4eb8-99a6-7338f5d702ea sent (3081 ms)
+
+2026-10-13 15:51:08,334 INFO captura e80a5695-d8d4-4aaa-b612-d82d860ab701 dog 0.9377
+[2] DOG 0.938 | pre 1.2 ms | inf 3.2 ms | e80a5695-d8d4-4aaa-b612-d82d860ab701
+Enter = capturar, q = salir > 2026-10-13 15:51:09,573 INFO envío e80a5695-d8d4-4aaa-b612-d82d860ab701 sent (1141 ms)
+
+[WiFi apagado]
+2026-10-13 15:52:43,334 INFO captura 52ae33a2-7c24-487c-abb5-11ae9bce9557 dog 1.0000
+[3] DOG 1.000 | pre 1.3 ms | inf 3.2 ms | 52ae33a2-7c24-487c-abb5-11ae9bce9557
+Enter = capturar, q = salir > 2026-10-13 15:52:44,867 ERROR envío 52ae33a2-7c24-487c-abb5-11ae9bce9557 FALLÓ (mlops-p4-edge-captures-222629887955): EndpointConnectionError: Could not connect to the endpoint URL: "https://mlops-p4-edge-captures-222629887955.s3.amazonaws.com/edge-captures/v1/images/52ae33a2-7c24-487c-abb5-11ae9bce9557.jpg"; reintenta con: python -m edge retry 52ae33a2-7c24-487c-abb5-11ae9bce9557
+
+[WiFi encendido]
+2026-10-13 15:54:12,049 INFO captura 6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96 cat 0.9405
+[4] CAT 0.941 | pre 1.4 ms | inf 3.2 ms | 6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96
+Enter = capturar, q = salir > 2026-10-13 15:54:13,252 INFO envío 6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96 sent (1108 ms)
+
+--- B.3 y B.4 (terminal B) ---
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge status
+capturas    : 3 en C:\Users\karen\p4-21\Proyecto04-MLOps\edge\data\captures.jsonl
+envíos      : pending 0, sent 2, already_sent 0, failed 1
+última      : 2026-10-13T21:52:42.993132+00:00 dog 1.000 (52ae33a2-7c24-487c-abb5-11ae9bce9557)
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge status
+capturas    : 4 en C:\Users\karen\p4-21\Proyecto04-MLOps\edge\data\captures.jsonl
+envíos      : pending 0, sent 3, already_sent 0, failed 1
+última      : 2026-10-13T21:54:11.985144+00:00 cat 0.941 (6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96)
+[las demás líneas de status no cambian: edge-laptop-01, GENERAL WEBCAM, sha256: OK, mismo bucket]
+
+--- B.5 (terminal B, consultas de solo lectura) ---
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> $Bucket = 'mlops-p4-edge-captures-222629887955'
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> $AwsProfileArgs = @('--profile', 'mlops-p3')
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> $CaptureId = '6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96'
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> aws s3api list-objects-v2 --bucket $Bucket --prefix "edge-captures/v1/images/${CaptureId}.jpg" --query '{count:KeyCount,keys:Contents[].Key}' --output json @AwsProfileArgs
+{
+    "count": null,
+    "keys": [
+        "edge-captures/v1/images/6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96.jpg"
+    ]
+}
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> aws s3api list-objects-v2 --bucket $Bucket --prefix "edge-captures/v1/events/${CaptureId}.json" --query '{count:KeyCount,keys:Contents[].Key}' --output json @AwsProfileArgs
+{
+    "count": null,
+    "keys": [
+        "edge-captures/v1/events/6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96.json"
+    ]
+}
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> aws s3 cp "s3://$Bucket/edge-captures/v1/events/${CaptureId}.json" - @AwsProfileArgs
+{"capture_id":"6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96","captured_at":"2026-10-13T21:54:11.985144+00:00","confidence":0.9405334128972396,"crop":{"frame_height":360,"frame_width":640,"height":288,"width":288,"x":176,"y":36},"device_id":"edge-laptop-01","image_key":"edge-captures/v1/images/6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96.jpg","inference_ms":3.2340000034309924,"model_sha256":"dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392","model_version":"1.0.0-int8","predicted_class":"cat","preprocess_ms":1.3896999880671501,"probabilities":{"cat":0.9405334128972396,"dog":0.059466587102760426},"runtime":"onnxruntime-1.30.0","schema_version":"1"}
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> Select-String $CaptureId edge\data\captures.jsonl
+edge\data\captures.jsonl:4:{"event": {"schema_version": "1", "capture_id": "6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96", "captured_at": "2026-10-13T21:54:11.985144+00:00", "device_id": "edge-laptop-01", "model_version": "1.0.0-int8", "model_sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392", "runtime": "onnxruntime-1.30.0", "predicted_class": "cat", "confidence": 0.9405334128972396, "probabilities": {"cat": 0.9405334128972396, "dog": 0.059466587102760426}, "crop": {"x": 176, "y": 36, "width": 288, "height": 288, "frame_width": 640, "frame_height": 360}, "preprocess_ms": 1.3896999880671501, "inference_ms": 3.2340000034309924, "image_key": "edge-captures/v1/images/6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96.jpg"}, "image_path": "images/6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96.jpg", "crop_path": "crops/6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96.jpg"}
+
+--- B.6 (navegador) ---
+http://18.213.105.30/edge/captures, tras pulsar Actualizar: 75 capturas válidas; primera tarjeta
+cat 94.1 %, capturada 13 oct 2026 21:54:11.985144 UTC, recibida 21:54:13 UTC,
+capture_id 6c21a87e-d5f1-451f-9a2f-aeb2ae34ab96, edge-laptop-01, 1.0.0-int8. Ver portal_aws.png.
+
+--- B.7 (terminal A, después de salir de `run` con q) ---
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> $CaptureId = '52ae33a2-7c24-487c-abb5-11ae9bce9557'
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge retry $CaptureId
+2026-10-13 16:07:58,930 INFO envío 52ae33a2-7c24-487c-abb5-11ae9bce9557 sent (2872 ms)
+52ae33a2-7c24-487c-abb5-11ae9bce9557 sent 2872 ms
+resumen: sent 1
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge retry $CaptureId
+2026-10-13 16:08:03,069 INFO envío 52ae33a2-7c24-487c-abb5-11ae9bce9557 already_sent (3033 ms)
+52ae33a2-7c24-487c-abb5-11ae9bce9557 already_sent 3033 ms
+resumen: already_sent 1
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> aws s3api list-objects-v2 --bucket $Bucket --prefix "edge-captures/v1/images/${CaptureId}" --query 'Contents[].Key' --output json @AwsProfileArgs
+[
+    "edge-captures/v1/images/52ae33a2-7c24-487c-abb5-11ae9bce9557.jpg"
+]
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> aws s3api list-objects-v2 --bucket $Bucket --prefix "edge-captures/v1/events/${CaptureId}" --query 'Contents[].Key' --output json @AwsProfileArgs
+[
+    "edge-captures/v1/events/52ae33a2-7c24-487c-abb5-11ae9bce9557.json"
+]
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> Get-Content edge\data\uploads.jsonl | Select-String $CaptureId
+{"capture_id": "52ae33a2-7c24-487c-abb5-11ae9bce9557", "upload_status": "pending", "error": null, "upload_ms": null, "bucket": "mlops-p4-edge-captures-222629887955", "at": "2026-10-13T21:52:43.338+00:00"}
+{"capture_id": "52ae33a2-7c24-487c-abb5-11ae9bce9557", "upload_status": "failed", "error": "EndpointConnectionError: Could not connect to the endpoint URL: \"https://mlops-p4-edge-captures-222629887955.s3.amazonaws.com/edge-captures/v1/images/52ae33a2-7c24-487c-abb5-11ae9bce9557.jpg\"", "upload_ms": 1437.45, "bucket": "mlops-p4-edge-captures-222629887955", "at": "2026-10-13T21:52:44.802+00:00"}
+{"capture_id": "52ae33a2-7c24-487c-abb5-11ae9bce9557", "upload_status": "sent", "error": null, "upload_ms": 2872.07, "bucket": "mlops-p4-edge-captures-222629887955", "at": "2026-10-13T22:07:58.868+00:00"}
+{"capture_id": "52ae33a2-7c24-487c-abb5-11ae9bce9557", "upload_status": "already_sent", "error": null, "upload_ms": 3033.48, "bucket": "mlops-p4-edge-captures-222629887955", "at": "2026-10-13T22:08:02.991+00:00"}
+
+--- B.8 (terminal A y B) ---
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge run
+2026-10-13 16:08:54,760 INFO modelo model_int8.onnx verificado (sha256=dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392)
+2026-10-13 16:08:54,815 INFO runtime onnxruntime-1.30.0 listo, modelo 1.0.0-int8
+2026-10-13 16:08:54,815 INFO log C:\Users\karen\p4-21\Proyecto04-MLOps\edge\data\captures.jsonl: 4 capturas previas
+2026-10-13 16:08:54,815 INFO modo manual, dispositivo edge-laptop-01, cámara GENERAL WEBCAM
+2026-10-13 16:08:54,815 INFO envío a s3://mlops-p4-edge-captures-222629887955 (perfil mlops-p3)
+Enter = capturar, q = salir >
+2026-10-13 16:10:21,406 INFO captura 9c584721-b375-4a5b-8a61-f86c7378d245 dog 0.9986
+[1] DOG 0.999 | pre 3.4 ms | inf 3.8 ms | 9c584721-b375-4a5b-8a61-f86c7378d245
+Enter = capturar, q = salir > 2026-10-13 16:10:24,480 INFO envío 9c584721-b375-4a5b-8a61-f86c7378d245 sent (2493 ms)
+
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge status   (terminal B)
+capturas    : 5 en C:\Users\karen\p4-21\Proyecto04-MLOps\edge\data\captures.jsonl
+envíos      : pending 0, sent 4, already_sent 1, failed 0
+última      : 2026-10-13T22:10:21.301040+00:00 dog 0.999 (9c584721-b375-4a5b-8a61-f86c7378d245)
+
+--- B.9 (terminal A) ---
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> Get-Command uvx -ErrorAction Stop | Out-Null
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> uvx --python 3.12 --from 'dvc[s3]==3.67.1' dvc --version
+Installed 106 packages in 26.75s
+3.67.1
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> uvx --python 3.12 --from 'dvc[s3]==3.67.1' dvc remote modify --local prod profile mlops-p3
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> uvx --python 3.12 --from 'dvc[s3]==3.67.1' dvc pull -r prod crops
+Collecting                              |672 [00:21, 31.0entry/s]
+Applying changes                        |670 [00:11,  56.5file/s]
+A       data\derived\crops\
+671 files fetched and 670 files added
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> git diff --exit-code -- dvc.lock
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> python -m edge.tools.parity_model --model edge/models/model_int8.onnx --reference reports/p4/reference/parity_reference.csv --crops data/derived/crops --json edge/data/parity-demo.json
+OK  000011_000010 base=cat edge=cat max_dp=6.90e-05
+OK  000043_000069 base=dog edge=dog max_dp=1.51e-04
+OK  000051_000050 base=dog edge=dog max_dp=1.04e-02
+OK  000062_000044 base=dog edge=dog max_dp=3.07e-03
+OK  000069_000083 base=cat edge=cat max_dp=1.70e-02
+OK  000074_000088 base=cat edge=cat max_dp=7.54e-04
+OK  000146_000165 base=cat edge=cat max_dp=3.92e-02
+OK  000160_000182 base=dog edge=dog max_dp=1.28e-02
+OK  000168_000191 base=dog edge=dog max_dp=5.81e-03
+OK  000168_000192 base=dog edge=dog max_dp=5.23e-03
+OK  000238_000270 base=dog edge=dog max_dp=3.77e-04
+OK  000290_000333 base=dog edge=dog max_dp=8.83e-04
+OK  000381_000366 base=cat edge=cat max_dp=7.01e-02
+OK  000411_000396 base=dog edge=dog max_dp=2.31e-04
+OK  000418_000403 base=dog edge=dog max_dp=5.74e-04
+OK  000430_000419 base=cat edge=cat max_dp=3.82e-02
+OK  000447_000436 base=cat edge=cat max_dp=2.92e-06
+OK  000456_000445 base=cat edge=cat max_dp=2.20e-04
+OK  000618_000618 base=cat edge=cat max_dp=2.74e-04
+OK  000633_000627 base=dog edge=dog max_dp=4.53e-02
+{
+  "model": "edge\\models\\model_int8.onnx",
+  "model_sha256": "dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392",
+  "runtime": "onnxruntime-1.30.0",
+  "references": 20,
+  "class_mismatches": 0,
+  "max_abs_delta_prob": 0.07013262161543143
+}
+PS C:\Users\karen\p4-21\Proyecto04-MLOps> Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz"
+2026-10-13 16:22:25 -06:00
