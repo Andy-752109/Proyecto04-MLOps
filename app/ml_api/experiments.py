@@ -1,5 +1,6 @@
 from mlflow.tracking import MlflowClient
 from pydantic import ValidationError
+from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -10,7 +11,7 @@ def get_client() -> MlflowClient:
     return MlflowClient()
 
 
-async def list_runs(request: Request) -> JSONResponse:
+def list_runs(request: Request) -> JSONResponse:
     experiment_id = request.path_params["experiment_id"]
     client = get_client()
     try:
@@ -20,7 +21,7 @@ async def list_runs(request: Request) -> JSONResponse:
         return JSONResponse({"error": str(e)}, status_code=404)
 
 
-async def get_metric_history(request: Request) -> JSONResponse:
+def get_metric_history(request: Request) -> JSONResponse:
     run_id = request.path_params["run_id"]
     metric_key = request.path_params["metric_key"]
     client = get_client()
@@ -41,9 +42,9 @@ async def update_run_tag(request: Request) -> JSONResponse:
     except (ValueError, ValidationError) as e:
         return JSONResponse({"error": f"Payload inválido: {e}"}, status_code=400)
 
-    client = get_client()
+    client = await run_in_threadpool(get_client)
     try:
-        client.set_tag(run_id, tag.key, tag.value)
+        await run_in_threadpool(client.set_tag, run_id, tag.key, tag.value)
         return JSONResponse(
             {"status": "success", "run_id": run_id, "tag": tag.key, "value": tag.value}
         )
