@@ -52,8 +52,8 @@ jobs:
       - name: Ruff (formato)
         run: uv run --locked --no-build --group ml ruff format --check .
       - name: MinIO (para el tramo de publicación de test_e2e_pipeline.py)
-        # `docker run` normal, no un `services:` -- el `minio/minio` oficial
-        # no trae un CMD por defecto, necesita `server /data` como argumento,
+        # `docker run` normal, no un `services:` -- la imagen de Chainguard
+        # necesita `server /data` como argumento,
         # y los contenedores de servicio de Actions no dejan pasar un
         # command propio con facilidad.
         working-directory: .

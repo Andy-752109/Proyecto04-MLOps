@@ -309,7 +309,6 @@ El portal corre en la EC2 con
 | Credenciales de AWS en `ml-api` | perfil SSO (`~/.aws` + `AWS_PROFILE`) | rol de instancia `mlops-p4-portal-role` por IMDSv2; sin `~/.aws` ni `AWS_PROFILE` |
 | Acceso | libre | **basic auth** obligatorio en nginx para todo el sitio |
 | Reinicio | `on-failure` | `unless-stopped`: vuelve solo tras reiniciar la EC2 |
-| MinIO | `cgr.dev/chainguard/minio:latest` | `cgr.dev/chainguard/minio:latest` (ver nota) |
 
 Sin MLflow en AWS: las páginas que lo usan (Experiments, Training) muestran error;
 Capturas Edge y Models no lo necesitan. En `ml-api`, `MLFLOW_HTTP_REQUEST_MAX_RETRIES=0` y
