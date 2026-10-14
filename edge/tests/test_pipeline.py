@@ -7,14 +7,14 @@ import shutil
 import socket
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
 from fixtures import solid_frame_bgr, write_config, write_tiny_model
 from PIL import Image
 
-from edge.__main__ import main
+from edge.__main__ import format_times, main
 from edge.backend import create_backend
 from edge.config import load_config
 from edge.event_validator import validate_event
@@ -196,6 +196,30 @@ class FakeCamera:
         pass
 
 
+class FormatTimesTests(unittest.TestCase):
+    """Zona fija: no depende de la zona de la máquina ni del runner de CI."""
+
+    UTC_MINUS_6 = timezone(timedelta(hours=-6))
+
+    def test_local_and_utc_from_captured_at(self) -> None:
+        self.assertEqual(
+            format_times("2026-10-14T20:32:05.123456+00:00", self.UTC_MINUS_6),
+            "14:32:05 local / 20:32:05 UTC",
+        )
+
+    def test_crosses_midnight(self) -> None:
+        self.assertEqual(
+            format_times("2026-10-15T01:38:06.100136+00:00", self.UTC_MINUS_6),
+            "19:38:06 local / 01:38:06 UTC",
+        )
+
+    def test_non_utc_offset_is_converted(self) -> None:
+        self.assertEqual(
+            format_times("2026-10-14T14:32:05-06:00", timezone.utc),
+            "20:32:05 local / 20:32:05 UTC",
+        )
+
+
 class CliTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = temp_dir(self)
@@ -226,6 +250,12 @@ class CliTests(unittest.TestCase):
         self.assertEqual(len(read_log(self.tmp / "data" / "captures.jsonl")), 3)
         log_text = (self.tmp / "data" / "edge.log").read_text(encoding="utf-8")
         self.assertIn("verificado (sha256=", log_text)
+
+    def test_capture_line_shows_the_event_time(self) -> None:
+        _, out = self.run_cli("run", "--mode", "interval", "--count", "1")
+        event = read_log(self.tmp / "data" / "captures.jsonl")[0]["event"]
+        line = next(line for line in out.splitlines() if event["capture_id"] in line)
+        self.assertIn(f" | {format_times(event['captured_at'])} | pre ", line)
 
     def test_manual_mode_captures_on_enter_and_quits_on_q(self) -> None:
         with mock.patch("builtins.input", side_effect=["", "", "q"]):
