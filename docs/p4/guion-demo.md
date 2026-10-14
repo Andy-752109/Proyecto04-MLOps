@@ -28,7 +28,7 @@ La [corrida P4-21 (#50)](https://github.com/Andy-752109/Proyecto04-MLOps/issues/
 | IDs comprobados | `6c21a87e…` laptop → S3 → portal (B.5–B.6); `52ae33a2…` `failed` → `sent` → `already_sent` (B.7) |
 | Resultados de S3 | Evento de S3 igual al local; exactamente 2 objetos para el ID reintentado |
 | Resultados del portal | 75 capturas válidas; `6c21a87e…` primera tras Actualizar, cat 94.1 %, misma hora UTC que el evento |
-| Incidencias | `KeyCount` salía `null` en B.5 y B.7 (corregido en este guion); SSO con `--use-device-code` |
+| Incidencias | En esta corrida, `KeyCount` salió `null` en B.5 (AWS CLI 2.37.9); el guion ya compara las claves completas. SSO con `--use-device-code`. Reintento probado con `retry <capture_id>`; `retry --pending` no se ejecutó. El Python global ya tenía las dependencias: no se probó una instalación desde cero |
 | Evidencias | [Registro y consola](../../reports/p4/operation/verificacion-p4-21/README.md), [captura del portal](../../reports/p4/operation/verificacion-p4-21/portal_aws.png) |
 | Conclusión | El guion se puede ejecutar completo desde un clon limpio de `main` con el portal en AWS |
 
@@ -125,7 +125,7 @@ aws s3api list-objects-v2 --bucket $Bucket `
   --output json @AwsProfileArgs
 ```
 
-Comprobar los **nombres completos**: exactamente `edge-captures/v1/images/${CaptureId}.jpg` y `edge-captures/v1/events/${CaptureId}.json`, una sola clave por consulta, **dos claves actuales en total**. El prefijo va sin extensión para que aparezca cualquier otro objeto con el mismo ID; no se cuentan versiones históricas de S3. No usar `KeyCount`: AWS CLI v2 pagina `list-objects-v2` y lo devuelve `null` (visto en la [corrida P4-21](../../reports/p4/operation/verificacion-p4-21/README.md#incidencias)). La imagen es el frame JPEG y el JSON es el evento. El uploader usa `If-None-Match: *`, de modo que el reintento no debe duplicarlos. Si falla S3 o el SSO, mostrar el estado local y el error; si no se recupera, señalar como **respaldo histórico** el [fallo controlado P4-12](../../reports/p4/operation/paso5_falla.txt), el [primer reintento](../../reports/p4/operation/paso5_retry.txt), el [segundo reintento](../../reports/p4/operation/paso5_retry_repetido.txt) y la [consulta de objetos](../../reports/p4/operation/paso5_s3_despues.txt), sin atribuirlos a la sesión actual.
+Comprobar los **nombres completos**: exactamente `edge-captures/v1/images/${CaptureId}.jpg` y `edge-captures/v1/events/${CaptureId}.json`, una sola clave por consulta, **dos claves actuales en total**. El prefijo va sin extensión para que aparezca cualquier otro objeto con el mismo ID; no se cuentan versiones históricas de S3. Si una consulta devuelve `[]` o `null`, ese objeto no quedó verificado. No basarse en `KeyCount`: en la [corrida P4-21](../../reports/p4/operation/verificacion-p4-21/README.md#incidencias) salió `null` aunque las claves existían. La imagen es el frame JPEG y el JSON es el evento. El uploader usa `If-None-Match: *`, de modo que el reintento no debe duplicarlos. Si falla S3 o el SSO, mostrar el estado local y el error; si no se recupera, señalar como **respaldo histórico** el [fallo controlado P4-12](../../reports/p4/operation/paso5_falla.txt), el [primer reintento](../../reports/p4/operation/paso5_retry.txt), el [segundo reintento](../../reports/p4/operation/paso5_retry_repetido.txt) y la [consulta de objetos](../../reports/p4/operation/paso5_s3_despues.txt), sin atribuirlos a la sesión actual.
 
 ### B.8 Reinicio en vivo
 

@@ -17,9 +17,10 @@ portal en AWS.
   `GENERAL WEBCAM`.
 - Clon nuevo en `C:\Users\karen\p4-21\Proyecto04-MLOps`; no se reutilizaron `edge/config.yaml`,
   `edge/models/` ni `edge/data/` del checkout anterior de la laptop.
-- El Python global de la laptop ya tenía las dependencias de `edge/requirements.txt` de corridas
-  anteriores (`pip` respondió "already satisfied"). El README no pide un entorno virtual; el clon
-  es nuevo, el intérprete no.
+- Se ejecutó `python -m pip install -r edge/requirements.txt` sin errores, pero el Python global
+  de la laptop ya tenía las dependencias de corridas anteriores (`pip` respondió "already
+  satisfied"). El README no pide un entorno virtual; el clon es nuevo, el intérprete no, así que
+  **no se comprobó una instalación de dependencias desde cero**.
 - SSO con el perfil `mlops-p3` (rol `MLOpsP3`), iniciado con `--use-device-code` y aprobado desde
   otra computadora.
 
@@ -58,15 +59,17 @@ por separado: esta corrida comprueba el recorrido, no la exactitud (eso está en
 | B.4 | PASS | Con WiFi, la captura 4 llegó como `sent` en 1.1 s; la 3 siguió `failed` (no hay reenvío automático) |
 | B.5 | PASS | En S3, una clave de imagen y una de evento para `6c21a87e…`; el evento de S3 es igual al de `captures.jsonl` (hora, clase, probabilidades, SHA, recorte, `image_key`) |
 | B.6 | PASS | Tras Actualizar, 75 capturas válidas; `6c21a87e…` primera, cat 94.1 %, capturada 21:54:11.985144 UTC, `edge-laptop-01`, `1.0.0-int8` |
-| B.7 | PASS | `retry 52ae33a2…` → `sent`; repetido → `already_sent`. `uploads.jsonl`: `pending → failed → sent → already_sent`. S3: exactamente 2 objetos (imagen y evento) |
+| B.7 | PASS | `python -m edge retry 52ae33a2…` → `sent`; repetido → `already_sent` (no se ejecutó la variante `retry --pending`). `uploads.jsonl`: `pending → failed → sent → already_sent`. S3: exactamente 2 objetos (imagen y evento) |
 | B.8 | PASS | Al reiniciar, "4 capturas previas"; captura 5 `sent`; `status`: 5 capturas, `sent 4`, `already_sent 1`, `failed 0` |
 | B.9 | PASS | `dvc pull -r prod crops` sin cambios en `dvc.lock`; `parity_model`: 20 referencias, 0 diferencias de clase, máxima diferencia de probabilidad 0.0701, igual que la [conversión](../../conversion/conversion_log.json) (0 diferencias) |
 
 ## Incidencias
 
-- **Guion, B.5 y B.7:** `--query '{count:KeyCount,...}'` devolvió `"count": null`. AWS CLI v2
-  pagina `list-objects-v2` y no agrega `KeyCount`; las claves sí salieron bien. Se corrigió el
-  guion en este PR para listar solo `Contents[].Key` y contar las claves.
+- **Guion, B.5:** con AWS CLI 2.37.9, `--query '{count:KeyCount,...}'` devolvió `"count": null`,
+  aunque `Contents[].Key` sí mostró la clave esperada. Es lo observado en esta corrida, no una
+  regla general de S3. El guion ahora lista solo `Contents[].Key` y compara las claves completas
+  de imagen y evento con las del mismo `capture_id`; si devuelve `[]` o `null`, ese objeto no
+  quedó verificado. En B.7 ya se usó esa consulta.
 - **README, SSO:** se usó `aws sso login --profile mlops-p3 --use-device-code` porque el segundo
   factor de la cuenta no está en la laptop edge. Con el comando del README tal cual se abre el
   navegador de la laptop; no es un error del README.
