@@ -15,6 +15,7 @@ import logging
 import sys
 import time
 from collections import Counter
+from datetime import datetime, timezone, tzinfo
 from pathlib import Path
 
 from edge.backend import create_backend, sha256_file
@@ -71,10 +72,21 @@ def cameras() -> int:
     return 0
 
 
+def format_times(captured_at: str, tz: tzinfo | None = None) -> str:
+    """`captured_at` del evento como `HH:MM:SS local / HH:MM:SS UTC`.
+
+    Con `tz=None` la hora local es la zona del sistema (la laptop edge está en UTC−6).
+    """
+    utc = datetime.fromisoformat(captured_at).astimezone(timezone.utc)
+    return f"{utc.astimezone(tz):%H:%M:%S} local / {utc:%H:%M:%S} UTC"
+
+
 def show(capture: Capture, number: int) -> None:
     event = capture.event
+    # La hora sale del evento, no de otro now(): coincide con S3 y con el portal.
     print(
         f"[{number}] {event['predicted_class'].upper():3s} {event['confidence']:.3f}"
+        f" | {format_times(event['captured_at'])}"
         f" | pre {event['preprocess_ms']:.1f} ms | inf {event['inference_ms']:.1f} ms"
         f" | {event['capture_id']}",
         flush=True,
