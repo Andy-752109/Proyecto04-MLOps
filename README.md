@@ -43,6 +43,15 @@ python -m edge status
 
 `status` debe indicar `sha256: OK` antes de abrir la cámara; este comando compara con `edge/config.yaml`. Al iniciar `run`, la app también coteja el SHA con `models/edge_registry.json`.
 
+**Sin acceso a AWS:** el bucket es privado, así que los artefactos INT8 también están en el [Release `p4-int8-1.0.0`](https://github.com/Andy-752109/Proyecto04-MLOps/releases/tag/p4-int8-1.0.0): `model_int8.onnx`, `edge_package_1.0.0-int8.tar.gz` y `SHA256SUMS.txt`. Descárgalos a una carpeta y verifica en PowerShell que el SHA-256 coincida con `SHA256SUMS.txt` y con [`models/edge_registry.json`](models/edge_registry.json):
+
+```powershell
+Get-FileHash -Algorithm SHA256 model_int8.onnx, edge_package_1.0.0-int8.tar.gz
+Get-Content SHA256SUMS.txt
+```
+
+Copia `model_int8.onnx` a `edge/models/` y ejecuta `python -m edge status`; debe indicar `sha256: OK`.
+
 Para **reproducir la conversión** desde un clon limpio, recupera las salidas cacheadas de las etapas `crops` y `manifest` desde el remote DVC `prod`. El perfil se guarda solo en `.dvc/config.local`; `manifest` contiene el CSV que necesita `edge_model.convert`. Desde la raíz, en PowerShell:
 
 ```powershell
