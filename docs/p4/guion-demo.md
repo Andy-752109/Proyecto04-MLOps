@@ -12,25 +12,25 @@ Recorrido dirigido de la **fase 4B, «Observar el recorrido»**, del archivo ori
 | Duración aproximada | 20 minutos |
 | Incidencias y ajustes | Sin fallas de operación. El modelo asignó la clase contraria a 2 fotos; se dejan visibles como errores reales del clasificador. Las fotos se mostraron a la cámara desde una pantalla, no impresas; la PM lo aceptó |
 
-### Pendiente de verificación P4-21
+### Verificación P4-21
 
-La [corrida P4-21 (#50)](https://github.com/Andy-752109/Proyecto04-MLOps/issues/50) es una **verificación interna** pendiente de resultados verificables; no sustituye la demostración observada por el evaluador. Completar solo después de recibir el registro de Ale, sin atribuir a esa corrida el ensayo histórico anterior.
+La [corrida P4-21 (#50)](https://github.com/Andy-752109/Proyecto04-MLOps/issues/50) es una **verificación interna**: las fotos las eligió el equipo y nadie externo la observó. No sustituye la demostración observada por el evaluador ni convierte en observados los pasos de la [matriz](#matriz-de-cobertura-de-la-fase-4b).
 
 | Campo | Registro P4-21 |
 |---|---|
-| Responsable | Ale (según el issue #50); ejecución por confirmar |
-| Fecha | Pendiente |
-| Commit | Pendiente |
-| Entorno | Pendiente |
-| Duración | Pendiente |
-| Pasos ejecutados | Pendiente |
-| Capturas generadas | Pendiente |
-| IDs comprobados | Pendiente |
-| Resultados de S3 | Pendiente |
-| Resultados del portal | Pendiente |
-| Incidencias | Pendiente |
-| Evidencias | Pendiente |
-| Conclusión | Pendiente |
+| Responsable | Ale |
+| Fecha | Martes 13 de octubre de 2026, 15:22–16:22 (UTC−06:00) |
+| Commit | `02c82d5` (`main`, merge del #51), clon nuevo |
+| Entorno | `edge-laptop-01`, Windows 10, Python 3.12.10, cámara `GENERAL WEBCAM`; portal AWS en el navegador |
+| Duración | Parte B (B.1–B.9): 33 min 31 s, con la primera instalación de DVC y el `dvc pull` de recortes; B.1–B.8: unos 22 min |
+| Pasos ejecutados | B.1–B.9 completos, todos PASS |
+| Capturas generadas | 5: dos en B.2, una sin WiFi en B.3, una en B.4 y una tras reiniciar en B.8 |
+| IDs comprobados | `6c21a87e…` laptop → S3 → portal (B.5–B.6); `52ae33a2…` `failed` → `sent` → `already_sent` (B.7) |
+| Resultados de S3 | Evento de S3 igual al local; exactamente 2 objetos para el ID reintentado |
+| Resultados del portal | 75 capturas válidas; `6c21a87e…` primera tras Actualizar, cat 94.1 %, misma hora UTC que el evento |
+| Incidencias | En esta corrida, `KeyCount` salió `null` en B.5 (AWS CLI 2.37.9); el guion ya compara las claves completas. SSO con `--use-device-code`. Reintento probado con `retry <capture_id>`; `retry --pending` no se ejecutó. El Python global ya tenía las dependencias: no se probó una instalación desde cero |
+| Evidencias | [Registro y consola](../../reports/p4/operation/verificacion-p4-21/README.md), [captura del portal](../../reports/p4/operation/verificacion-p4-21/portal_aws.png) |
+| Conclusión | El guion se puede ejecutar completo desde un clon limpio de `main` con el portal en AWS |
 
 ## Preparación antes de iniciar el cronómetro
 
@@ -87,8 +87,8 @@ $Bucket = '<bucket real>'
 $AwsProfile = '' # Sustituir por el perfil real si aws.profile no es null
 $AwsProfileArgs = @(if ($AwsProfile) { '--profile'; $AwsProfile })
 $CaptureId = '<UUID nuevo de B.4>'
-aws s3api list-objects-v2 --bucket $Bucket --prefix "edge-captures/v1/images/${CaptureId}.jpg" --query '{count:KeyCount,keys:Contents[].Key}' --output json @AwsProfileArgs
-aws s3api list-objects-v2 --bucket $Bucket --prefix "edge-captures/v1/events/${CaptureId}.json" --query '{count:KeyCount,keys:Contents[].Key}' --output json @AwsProfileArgs
+aws s3api list-objects-v2 --bucket $Bucket --prefix "edge-captures/v1/images/${CaptureId}.jpg" --query 'Contents[].Key' --output json @AwsProfileArgs
+aws s3api list-objects-v2 --bucket $Bucket --prefix "edge-captures/v1/events/${CaptureId}.json" --query 'Contents[].Key' --output json @AwsProfileArgs
 aws s3 cp "s3://$Bucket/edge-captures/v1/events/${CaptureId}.json" - @AwsProfileArgs
 aws s3api head-object --bucket $Bucket --key "edge-captures/v1/images/${CaptureId}.jpg" @AwsProfileArgs
 ```
@@ -115,17 +115,17 @@ Esperado en consola y `edge/data/uploads.jsonl`: el mismo ID con `failed`, luego
 
 ```powershell
 aws s3api list-objects-v2 --bucket $Bucket `
-  --prefix "edge-captures/v1/images/${CaptureId}.jpg" `
-  --query '{count:KeyCount,keys:Contents[].Key}' `
+  --prefix "edge-captures/v1/images/${CaptureId}" `
+  --query 'Contents[].Key' `
   --output json @AwsProfileArgs
 
 aws s3api list-objects-v2 --bucket $Bucket `
-  --prefix "edge-captures/v1/events/${CaptureId}.json" `
-  --query '{count:KeyCount,keys:Contents[].Key}' `
+  --prefix "edge-captures/v1/events/${CaptureId}" `
+  --query 'Contents[].Key' `
   --output json @AwsProfileArgs
 ```
 
-Comprobar los **nombres completos**: exactamente `edge-captures/v1/images/${CaptureId}.jpg` y `edge-captures/v1/events/${CaptureId}.json`, un objeto actual por consulta, **dos claves actuales en total**. `KeyCount` por sí solo no prueba que los nombres sean los correctos; tampoco se cuentan versiones históricas de S3. La imagen es el frame JPEG y el JSON es el evento. El uploader usa `If-None-Match: *`, de modo que el reintento no debe duplicarlos. Si falla S3 o el SSO, mostrar el estado local y el error; si no se recupera, señalar como **respaldo histórico** el [fallo controlado P4-12](../../reports/p4/operation/paso5_falla.txt), el [primer reintento](../../reports/p4/operation/paso5_retry.txt), el [segundo reintento](../../reports/p4/operation/paso5_retry_repetido.txt) y la [consulta de objetos](../../reports/p4/operation/paso5_s3_despues.txt), sin atribuirlos a la sesión actual.
+Comprobar los **nombres completos**: exactamente `edge-captures/v1/images/${CaptureId}.jpg` y `edge-captures/v1/events/${CaptureId}.json`, una sola clave por consulta, **dos claves actuales en total**. El prefijo va sin extensión para que aparezca cualquier otro objeto con el mismo ID; no se cuentan versiones históricas de S3. Si una consulta devuelve `[]` o `null`, ese objeto no quedó verificado. No basarse en `KeyCount`: en la [corrida P4-21](../../reports/p4/operation/verificacion-p4-21/README.md#incidencias) salió `null` aunque las claves existían. La imagen es el frame JPEG y el JSON es el evento. El uploader usa `If-None-Match: *`, de modo que el reintento no debe duplicarlos. Si falla S3 o el SSO, mostrar el estado local y el error; si no se recupera, señalar como **respaldo histórico** el [fallo controlado P4-12](../../reports/p4/operation/paso5_falla.txt), el [primer reintento](../../reports/p4/operation/paso5_retry.txt), el [segundo reintento](../../reports/p4/operation/paso5_retry_repetido.txt) y la [consulta de objetos](../../reports/p4/operation/paso5_s3_despues.txt), sin atribuirlos a la sesión actual.
 
 ### B.8 Reinicio en vivo
 
