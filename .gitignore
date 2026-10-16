@@ -6,6 +6,7 @@
 
 # Entorno Python opcional para DVC.
 .venv-dvc/
+.venv-edge/
 edge/.venv/
 edge/**/__pycache__/
 

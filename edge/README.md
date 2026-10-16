@@ -6,13 +6,17 @@ modelo local y guarda el resultado como evento del
 
 ## Instalación
 
-Desde la raíz del repositorio, con **Python 3.12 de 64 bits**, el de la laptop edge. `onnxruntime` va fijo
-en 1.30.0, la versión con la que #4 verificó la paridad, y no tiene wheel para Python 3.10:
+Desde la raíz del repositorio, con **Python 3.12 de 64 bits**, crea un venv propio. `onnxruntime` va fijo
+en 1.30.0, la versión con la que #4 verificó la paridad, y requiere Python >=3.11. Para el recorrido completo del evaluador **sin cámara ni AWS**, sigue el [inicio rápido del README principal](../README.md#inicio-rápido-para-evaluadores-sin-cámara-y-sin-aws):
 
-```bash
-python -m pip install -r edge/requirements.txt       # app
-python -m pip install -r edge/requirements-dev.txt   # app + tests
+```powershell
+py -3.12 -m venv .venv-edge
+.\.venv-edge\Scripts\Activate.ps1
+python -m pip install -r edge/requirements.txt
+python -c "import jsonschema, onnxruntime, cv2, boto3, yaml; print('deps OK')"
 ```
+
+Ejecuta los comandos `python -m edge` con ese venv activo. Para los tests, instala además `edge/requirements-dev.txt` en el mismo venv. El Release INT8 está en el repositorio privado: su descarga mediante GitHub CLI autenticado y la verificación SHA se documentan en el inicio rápido.
 
 ## Modelo
 
@@ -120,6 +124,8 @@ Al reiniciar, la app sigue escribiendo en el mismo log y no repite `capture_id`.
   ```bash
   python -m edge.tools.parity_model --model edge/models/model_int8.onnx --json reports/p4/parity/edge.json
   ```
+
+  `parity_model` necesita un CSV de referencia y las imágenes a las que apunta; el comando anterior usa las 20 referencias cuyos recortes se obtienen por DVC. Para una inferencia **sin cámara ni AWS** desde un clon, el [inicio rápido](../README.md#inicio-rápido-para-evaluadores-sin-cámara-y-sin-aws) usa un CSV de una fila y un recorte histórico ya versionado. Esa comparación reproduce una predicción, no mide accuracy independiente.
 
 ## Tests
 

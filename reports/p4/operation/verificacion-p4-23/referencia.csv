@@ -1,0 +1,2 @@
+crop_id,path,true_class,predicted_class,prob_cat,prob_dog
+5ce6c2d4-be72-4e3a-a1b7-ab3d8b583110,crops/5ce6c2d4-be72-4e3a-a1b7-ab3d8b583110.jpg,dog,dog,0.011341811907719998,0.9886581880922799
