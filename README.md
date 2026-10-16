@@ -6,7 +6,7 @@ P4 lleva el clasificador `cat`/`dog` de P3 (`1.0.0`, PyTorch) a una laptop Windo
 
 ### Inicio rápido para evaluadores: sin cámara y sin AWS
 
-En **Windows x64**, instala **Python 3.12 de 64 bits**, Git y [GitHub CLI](https://cli.github.com/). Python 3.10 no satisface `onnxruntime==1.30.0`, fijado en `edge/requirements.txt`. El repositorio y su Release INT8 son **privados**: necesitas acceso autorizado a GitHub, pero no credenciales AWS. Abre PowerShell y ejecuta todo desde la raíz del clon:
+En **Windows x64**, instala **Python 3.12 de 64 bits**, Git y [GitHub CLI](https://cli.github.com/). Python 3.10 no satisface `onnxruntime==1.30.0`, fijado en `edge/requirements.txt`. El repositorio es **privado**, así que necesitas acceso autorizado a GitHub para clonarlo; si ya recibiste el modelo, no necesitas acceso al Release ni credenciales AWS para esta inferencia local. Abre PowerShell y ejecuta todo desde la raíz del clon:
 
 ```powershell
 gh auth status
@@ -40,12 +40,26 @@ aws:
   bucket: ""
 ```
 
-El modelo `model_int8.onnx` se obtiene del Release privado [`p4-int8-1.0.0`](https://github.com/Andy-752109/Proyecto04-MLOps/releases/tag/p4-int8-1.0.0) mediante GitHub CLI autenticado. Estos comandos conservan un archivo existente para verificarlo; no usan `--clobber`:
+Elige **una** de estas opciones para dejar el modelo en `edge/models/model_int8.onnx`. Si ya está allí, conserva el archivo y pasa a la comprobación SHA común:
+
+```powershell
+New-Item -ItemType Directory -Force edge/models | Out-Null
+```
+
+**Opción A — Ya tienes el modelo.** Si recibiste `model_int8.onnx` previamente, sustituye `RUTA_DEL_MODELO` por la carpeta real donde está el archivo. La copia se omite si el destino ya existe; en ambos casos se verifica su integridad más abajo. No requiere acceso al Release:
+
+```powershell
+if (-not (Test-Path edge/models/model_int8.onnx -PathType Leaf)) {
+  Copy-Item 'RUTA_DEL_MODELO\model_int8.onnx' `
+    'edge/models/model_int8.onnx'
+}
+```
+
+**Opción B — Descargar desde GitHub.** El Release [`p4-int8-1.0.0`](https://github.com/Andy-752109/Proyecto04-MLOps/releases/tag/p4-int8-1.0.0) es privado y requiere permiso de acceso y GitHub CLI autenticado. La descarga se omite si el destino existe; no se usa `--clobber`:
 
 ```powershell
 gh auth status
-if ($LASTEXITCODE -ne 0) { throw 'Se requiere acceso autorizado a GitHub' }
-New-Item -ItemType Directory -Force edge/models | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'Se requiere acceso autorizado al Release en GitHub' }
 if (-not (Test-Path edge/models/model_int8.onnx -PathType Leaf)) {
   gh release download p4-int8-1.0.0 `
     --repo Andy-752109/Proyecto04-MLOps `
@@ -53,6 +67,11 @@ if (-not (Test-Path edge/models/model_int8.onnx -PathType Leaf)) {
     --dir edge/models
   if ($LASTEXITCODE -ne 0) { throw 'No se pudo descargar el modelo INT8' }
 }
+```
+
+**Comprobación obligatoria para ambas opciones.** No continúes si el SHA-256 no coincide con el registro:
+
+```powershell
 $ExpectedSha = 'dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392'
 if (-not (Test-Path edge/models/model_int8.onnx -PathType Leaf)) { throw 'Falta model_int8.onnx' }
 $ActualSha = (Get-FileHash -Algorithm SHA256 edge/models/model_int8.onnx).Hash.ToLowerInvariant()
