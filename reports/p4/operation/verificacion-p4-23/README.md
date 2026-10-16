@@ -55,4 +55,21 @@ envíos      : desactivados; configura aws.bucket para enviar o reintentar
 
 La inferencia procesó **una imagen** y terminó con **código 0**. La consola imprimió `OK  5ce6c2d4-be72-4e3a-a1b7-ab3d8b583110 base=dog edge=dog max_dp=5.77e-04`. El JSON generado registró `references: 1`, `class_mismatches: 0`, `edge_class: dog`, `prob_cat: 0.011918750126189204` y `prob_dog: 0.9880812498738109`. No se abrió cámara ni se usó AWS.
 
-**Validación Windows PowerShell: pendiente de ejecución.**
+## Verificación Windows reportada por AleSarahi
+
+**Responsable:** AleSarahi. **Fuente:** [revisión aprobada del PR #57](https://github.com/Andy-752109/Proyecto04-MLOps/pull/57#pullrequestreview-5543598031), publicada el **16 de octubre de 2026 a las 05:52 UTC** (15 de octubre, 23:52 CST). Ale no indicó la fecha exacta de ejecución; esta es la fecha del reporte, no una fecha de prueba inferida. Los resultados siguientes proceden de los fragmentos de consola que incluyó en la revisión, no de una ejecución realizada por Heri ni de un log independiente adjunto.
+
+Ale indicó **Windows 11 Pro x64** y **Windows PowerShell 5.1**. Usó una carpeta nueva y clonó `p4-23-readme-edge-reproducible` en el commit `6bbded3`; el Python global 3.10 no se usó. `py -3.12 -m venv .venv-edge` falló con `No suitable Python runtime found` porque Python 3.12 estaba instalado mediante uv. Ale creó el venv con `py -V:Astral/CPython3.12.14 -m venv .venv-edge`; `Activate.ps1` funcionó sin cambiar la política de ejecución. La consola mostró `Python 3.12.14`, `pip 25.0.1` y un `python.exe` dentro de `.venv-edge`.
+
+Los comandos y resultados que Ale consignó en la revisión fueron:
+
+| Paso | Resultado reportado por Ale |
+|---|---|
+| `python -m pip install -r edge/requirements.txt` | Código 0. |
+| `python -c "import jsonschema, onnxruntime, cv2, boto3, yaml; print('deps OK')"` | `deps OK`. |
+| `gh release download p4-int8-1.0.0` con `--pattern model_int8.onnx --dir edge/models` | Descarga del Release privado; la revisión abrevia los demás argumentos del comando. No se probó copiar un modelo preentregado. |
+| `Get-FileHash -Algorithm SHA256 edge/models/model_int8.onnx` | `DFFA9CF2670F0F9BB96139AE08779E2BA3AF87691791AD770061E3F666290392`, igual al SHA esperado. |
+| `python -m edge status` | `sha256      : OK`; `bucket      : (vacío: solo local)`; `envíos      : desactivados; configura aws.bucket para enviar o reintentar`; `capturas    : 0` antes de inferir. |
+| `python -m edge.tools.parity_model --model edge/models/model_int8.onnx --reference reports/p4/operation/verificacion-p4-23/referencia.csv --crops reports/p4/evidence/prueba-edge-pantalla --json "$env:TEMP\p4-23-resultado.json"` | `OK  5ce6c2d4-be72-4e3a-a1b7-ab3d8b583110 base=dog edge=dog max_dp=5.77e-04`; `runtime: onnxruntime-1.30.0`, `references: 1`, `class_mismatches: 0`, código de salida 0. |
+
+Ale editó la copia local de `edge/config.yaml` para poner `aws.bucket: ""` y reportó `git status --short` vacío al final; el venv, la configuración y el modelo estaban ignorados. No publicó las probabilidades individuales del JSON, la salida completa de instalación ni un registro de consola independiente, por lo que aquí no se atribuyen esos datos a Windows. Tampoco probó la ruta opcional con cámara, la instalación con Python 3.10 ni la **opción de copiar un modelo preentregado** añadida después de su prueba. La comparación de una imagen verifica inferencia y concordancia con la predicción histórica, no accuracy independiente.
