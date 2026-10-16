@@ -4,24 +4,111 @@
 
 P4 lleva el clasificador `cat`/`dog` de P3 (`1.0.0`, PyTorch) a una laptop Windows 10 con cámara USB. Convierte el checkpoint a ONNX FP32, verifica paridad y aplica cuantización estática INT8 QDQ por canal (`1.0.0-int8`). La cámara y la inferencia funcionan localmente; cada captura guarda fotografía y evento antes de intentar el envío asíncrono a S3. `ml-api` lee los eventos de S3 y el portal de evaluación, desplegado en **AWS EC2 (`us-east-1`)**, los muestra en **Capturas Edge** ([despliegue y acceso](docs/p4/portal-aws.md)).
 
-### Requisitos y preparación desde un clon limpio
+### Inicio rápido para evaluadores: sin cámara y sin AWS
 
-En la laptop `edge-laptop-01`: Windows 10 de 64 bits, Python 3.12 de 64 bits, cámara USB `GENERAL WEBCAM`, Git, AWS CLI v2 y acceso SSO al perfil local `mlops-p3`. ONNX Runtime 1.30.0 necesita Microsoft Visual C++ Redistributable x64; véase [decisión de runtime](docs/p4/decision-runtime.md). Para recuperar y convertir el original también se necesitan `uv` y DVC 3.67.1 con S3. Para abrir el portal de evaluación en AWS basta un navegador y las credenciales del portal, entregadas al evaluador por privado. Docker Desktop, Compose, el perfil SSO y las variables locales de [`.env.example`](.env.example) se necesitan únicamente para la alternativa de desarrollo local. No se necesitan claves AWS permanentes.
-
-En PowerShell, clona el repositorio y prepara la laptop desde su raíz:
+En **Windows x64**, instala **Python 3.12 de 64 bits**, Git y [GitHub CLI](https://cli.github.com/). Python 3.10 no satisface `onnxruntime==1.30.0`, fijado en `edge/requirements.txt`. El repositorio y su Release INT8 son **privados**: necesitas acceso autorizado a GitHub, pero no credenciales AWS. Abre PowerShell y ejecuta todo desde la raíz del clon:
 
 ```powershell
-git clone https://github.com/Andy-752109/Proyecto04-MLOps.git
+gh auth status
+if ($LASTEXITCODE -ne 0) { throw 'Se requiere acceso autorizado a GitHub' }
+gh repo clone Andy-752109/Proyecto04-MLOps
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo clonar el repositorio privado' }
 Set-Location Proyecto04-MLOps
+python --version                         # muestra el Python activo antes de crear el venv
+py -3.12 -m venv .venv-edge
+.\.venv-edge\Scripts\Activate.ps1
+python --version                         # debe indicar Python 3.12
+python -m pip --version                  # la ruta debe incluir .venv-edge
+python -c "import sys; print(sys.executable); assert '.venv-edge' in sys.executable.lower()"
 python -m pip install -r edge/requirements.txt
+python -c "import jsonschema, onnxruntime, cv2, boto3, yaml; print('deps OK')"
+```
+
+Si PowerShell bloquea `Activate.ps1`, ejecuta `Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned` y vuelve a activarlo; el cambio se limita a esa sesión. Todos los comandos `python -m edge` siguientes deben usar el venv activo. Si la política del equipo impide la activación, invoca `.\.venv-edge\Scripts\python.exe` en lugar de `python` para instalación y comandos Edge, sin instalar en el Python global.
+
+Copia la configuración y edita **solo la copia local** `edge/config.yaml` (ignorada por Git). En su sección `aws`, deja `bucket: ""`; el perfil puede permanecer como está. Un bucket vacío desactiva los envíos a S3:
+
+```powershell
 Copy-Item edge/config.example.yaml edge/config.yaml
+notepad edge/config.yaml
+```
+
+En el archivo, la sección debe quedar así (conserva las otras claves):
+
+```yaml
+aws:
+  bucket: ""
+```
+
+El modelo `model_int8.onnx` se obtiene del Release privado [`p4-int8-1.0.0`](https://github.com/Andy-752109/Proyecto04-MLOps/releases/tag/p4-int8-1.0.0) mediante GitHub CLI autenticado. Estos comandos conservan un archivo existente para verificarlo; no usan `--clobber`:
+
+```powershell
+gh auth status
+if ($LASTEXITCODE -ne 0) { throw 'Se requiere acceso autorizado a GitHub' }
 New-Item -ItemType Directory -Force edge/models | Out-Null
+if (-not (Test-Path edge/models/model_int8.onnx -PathType Leaf)) {
+  gh release download p4-int8-1.0.0 `
+    --repo Andy-752109/Proyecto04-MLOps `
+    --pattern model_int8.onnx `
+    --dir edge/models
+  if ($LASTEXITCODE -ne 0) { throw 'No se pudo descargar el modelo INT8' }
+}
+$ExpectedSha = 'dffa9cf2670f0f9bb96139ae08779e2ba3af87691791ad770061e3f666290392'
+if (-not (Test-Path edge/models/model_int8.onnx -PathType Leaf)) { throw 'Falta model_int8.onnx' }
+$ActualSha = (Get-FileHash -Algorithm SHA256 edge/models/model_int8.onnx).Hash.ToLowerInvariant()
+Get-FileHash -Algorithm SHA256 edge/models/model_int8.onnx
+if ($ActualSha -ne $ExpectedSha) { throw 'SHA-256 del modelo INT8 no coincide' }
+python -m edge status
+```
+
+En `status`, comprueba visualmente la línea **`sha256      : OK`** y la ruta `edge/models/model_int8.onnx`. El código de salida 0 de `status` por sí solo no confirma que el modelo exista. Ahora clasifica el recorte versionado, sin abrir cámara ni usar AWS:
+
+```powershell
+python -m edge.tools.parity_model `
+  --model edge/models/model_int8.onnx `
+  --reference reports/p4/operation/verificacion-p4-23/referencia.csv `
+  --crops reports/p4/evidence/prueba-edge-pantalla `
+  --json "$env:TEMP\p4-23-resultado.json"
+if ($LASTEXITCODE -ne 0) { throw 'La clasificación no coincidió con la referencia histórica' }
+Get-Content "$env:TEMP\p4-23-resultado.json"
+```
+
+Debe procesarse **una imagen**, con `edge_class: dog`, `class_mismatches: 0` y salida 0. Las probabilidades pueden variar ligeramente entre plataformas. El CSV compara con una **predicción histórica del mismo modelo**, documentada en la [prueba P4-06](reports/p4/evidence/prueba-edge-pantalla/README.md); demuestra inferencia reproducible, no mide exactitud independiente. La [evidencia de esta verificación](reports/p4/operation/verificacion-p4-23/README.md) distingue las pruebas ejecutadas de las pendientes.
+
+**Cámara opcional.** Solo si hay una cámara funcional, con el mismo modelo local y `aws.bucket: ""`:
+
+```powershell
+python -m edge cameras
+python -m edge run --count 1
+python -m edge status
+```
+
+En modo manual, presiona Enter cuando `run` lo solicite. La captura permanece en `edge/data/`; no se envía a S3. La operación con AWS y portal se describe más abajo y no es necesaria para esta prueba local.
+
+| Problema | Comprobación o solución |
+|---|---|
+| `ModuleNotFoundError: jsonschema` | Activa `.venv-edge`, verifica `sys.executable` y reinstala con `python -m pip` del mismo venv. |
+| Python 3.10 | Crea el venv con `py -3.12`; `onnxruntime==1.30.0` requiere al menos Python 3.11 y este recorrido usa 3.12. |
+| `DLL load failed` al importar ONNX Runtime | Instala el [Microsoft Visual C++ Redistributable x64 oficial](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/) y repite el import. |
+| Cámara no encontrada | Solo para el recorrido opcional: `python -m edge cameras` y ajusta `camera.name`. |
+| `sha256` distinto de `OK` | Revisa ruta, versión e integridad de `edge/models/model_int8.onnx`; detente antes de inferir. |
+| GitHub 404 o acceso denegado | El repositorio y el Release son privados; solicita permisos y comprueba `gh auth status`. |
+| PowerShell bloquea `Activate.ps1` | Usa `Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned` solo en la sesión actual. |
+| Falta `referencia.csv` o el JPEG | Ejecuta desde la raíz de un clon completo y comprueba las rutas indicadas en el comando. |
+
+### Operación completa con cámara y AWS (opcional)
+
+En la laptop `edge-laptop-01`: Windows 10 de 64 bits, Python 3.12 de 64 bits, cámara USB `GENERAL WEBCAM`, Git, AWS CLI v2 y acceso SSO al perfil local `mlops-p3` para operar con S3. ONNX Runtime 1.30.0 necesita Microsoft Visual C++ Redistributable x64; véase [decisión de runtime](docs/p4/decision-runtime.md). Para recuperar y convertir el original también se necesitan `uv` y DVC 3.67.1 con S3. Para abrir el portal de evaluación en AWS basta un navegador y las credenciales del portal, entregadas al evaluador por privado. Docker Desktop, Compose y las variables locales de [`.env.example`](.env.example) se necesitan únicamente para la alternativa de desarrollo local. No se necesitan claves AWS permanentes.
+
+Tras el inicio rápido, configura el acceso AWS y la cámara en la laptop desde la raíz del repositorio:
+
+```powershell
 aws sso login --profile mlops-p3
 aws sts get-caller-identity --profile mlops-p3
 python -m edge cameras
 ```
 
-Confirma que la identidad tenga el rol `MLOpsP3`. Revisa `camera.name` en `edge/config.yaml` contra la salida de `cameras`; usa `camera.index` solo con `name: null`. `model.path`, `model.version`, `model.sha256` y `model.registry` deben corresponder a [`models/edge_registry.json`](models/edge_registry.json). El archivo local está ignorado por Git. El bucket y el perfil de `aws` ya están declarados en la plantilla. Para trabajar sin envío configura `aws.bucket: ""`; las capturas se seguirán guardando en `edge/data/`.
+Confirma que la identidad tenga el rol `MLOpsP3`. Para enviar capturas, restaura en `edge/config.yaml` el bucket de la plantilla. Revisa `camera.name` contra la salida de `cameras`; usa `camera.index` solo con `name: null`. `model.path`, `model.version`, `model.sha256` y `model.registry` deben corresponder a [`models/edge_registry.json`](models/edge_registry.json). El archivo local está ignorado por Git. Para trabajar sin envío conserva `aws.bucket: ""`; las capturas se seguirán guardando en `edge/data/`.
 
 ### Modelos P3 e INT8
 
@@ -34,23 +121,26 @@ uv run python verify_reload.py --version 1.0.0 --profile mlops-p3
 Pop-Location
 ```
 
-Queda en `eval_v1.0.0/artifacts/checkpoint/best.pt`. Para obtener la variante publicada, usa la ruta y `VersionId` de [`models/edge_registry.json`](models/edge_registry.json):
+Queda en `eval_v1.0.0/artifacts/checkpoint/best.pt`. Como alternativa a GitHub CLI, si **aún no existe** el modelo local, usa la ruta y `VersionId` de [`models/edge_registry.json`](models/edge_registry.json) para obtenerlo de S3:
 
 ```powershell
-aws s3api get-object --bucket mlops-p3-models-222629887955 --key models/edge/1.0.0-int8/model_int8.onnx --version-id 8xfGLRI8Mlq07SyM9hsODKBfuC1c24ig --profile mlops-p3 edge/models/model_int8.onnx
+if (-not (Test-Path edge/models/model_int8.onnx -PathType Leaf)) {
+  aws s3api get-object --bucket mlops-p3-models-222629887955 --key models/edge/1.0.0-int8/model_int8.onnx --version-id 8xfGLRI8Mlq07SyM9hsODKBfuC1c24ig --profile mlops-p3 edge/models/model_int8.onnx
+  if ($LASTEXITCODE -ne 0) { throw 'No se pudo descargar el modelo desde S3' }
+}
 python -m edge status
 ```
 
-`status` debe indicar `sha256: OK` antes de abrir la cámara; este comando compara con `edge/config.yaml`. Al iniciar `run`, la app también coteja el SHA con `models/edge_registry.json`.
+Aplica la comprobación SHA estricta del inicio rápido, incluso si el modelo ya existía. `status` debe indicar `sha256      : OK` antes de abrir la cámara; este comando compara con `edge/config.yaml`. Al iniciar `run`, la app también coteja el SHA con `models/edge_registry.json`.
 
-**Sin acceso a AWS:** el bucket es privado, así que los artefactos INT8 también están en el [Release `p4-int8-1.0.0`](https://github.com/Andy-752109/Proyecto04-MLOps/releases/tag/p4-int8-1.0.0): `model_int8.onnx`, `edge_package_1.0.0-int8.tar.gz` y `SHA256SUMS.txt`. Descárgalos a una carpeta y verifica en PowerShell que el SHA-256 coincida con `SHA256SUMS.txt` y con [`models/edge_registry.json`](models/edge_registry.json):
+**Sin acceso a AWS:** el bucket es privado; con acceso autorizado a GitHub, los artefactos INT8 también están en el Release **privado** [`p4-int8-1.0.0`](https://github.com/Andy-752109/Proyecto04-MLOps/releases/tag/p4-int8-1.0.0): `model_int8.onnx`, `edge_package_1.0.0-int8.tar.gz` y `SHA256SUMS.txt`. El inicio rápido anterior documenta la descarga autenticada del ONNX y su comprobación obligatoria. Para verificar también el paquete, compara su SHA-256 con `SHA256SUMS.txt` y con [`models/edge_registry.json`](models/edge_registry.json):
 
 ```powershell
 Get-FileHash -Algorithm SHA256 model_int8.onnx, edge_package_1.0.0-int8.tar.gz
 Get-Content SHA256SUMS.txt
 ```
 
-Copia `model_int8.onnx` a `edge/models/` y ejecuta `python -m edge status`; debe indicar `sha256: OK`.
+Para el ONNX, conserva la ruta `edge/models/model_int8.onnx` y comprueba su SHA como en el inicio rápido.
 
 Para **reproducir la conversión** desde un clon limpio, recupera las salidas cacheadas de las etapas `crops` y `manifest` desde el remote DVC `prod`. El perfil se guarda solo en `.dvc/config.local`; `manifest` contiene el CSV que necesita `edge_model.convert`. Desde la raíz, en PowerShell:
 
