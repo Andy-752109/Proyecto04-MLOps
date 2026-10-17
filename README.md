@@ -94,6 +94,24 @@ Get-Content "$env:TEMP\p4-23-resultado.json"
 
 Debe procesarse **una imagen**, con `edge_class: dog`, `class_mismatches: 0` y salida 0. Las probabilidades pueden variar ligeramente entre plataformas. El CSV compara con una **predicción histórica del mismo modelo**, documentada en la [prueba P4-06](reports/p4/evidence/prueba-edge-pantalla/README.md); demuestra inferencia reproducible, no mide exactitud independiente. La [evidencia de esta verificación](reports/p4/operation/verificacion-p4-23/README.md) distingue las pruebas ejecutadas de las pendientes.
 
+**Recorrido de la aplicación sin cámara.** `run --image` sustituye la cámara por un JPG y recorre el camino completo de una captura: verifica el SHA y el registro del modelo, aplica el recorte `center_square` de `edge/config.yaml`, infiere, valida el evento (`schema_version: "1"`) y lo guarda en `edge/data/`. Usa el frame completo (640×360) que la laptop guardó en la [prueba P4-06](reports/p4/evidence/prueba-edge-pantalla/README.md). Hace **una** captura y termina sin pedir Enter; no abre cámara ni usa AWS (`aws.bucket: ""`):
+
+```powershell
+python -m edge run --image reports/p4/evidence/prueba-edge-pantalla/images/5ce6c2d4-be72-4e3a-a1b7-ab3d8b583110.jpg
+python -m edge status
+python -m edge export
+```
+
+Salida esperada. La clase es `dog` y `capturas    : 1`; la hora, el `capture_id`, los milisegundos y la confianza (≈ 0.988) cambian entre ejecuciones y plataformas:
+
+```text
+... INFO modo image, dispositivo edge-laptop-01, imagen reports/p4/evidence/prueba-edge-pantalla/images/5ce6c2d4-be72-4e3a-a1b7-ab3d8b583110.jpg
+... WARNING sin aws.bucket: las capturas solo se guardan en local
+[1] DOG 0.988 | 18:13:23 local / 00:13:23 UTC | pre 1.4 ms | inf 1.9 ms | 518a026e-bea1-4672-b1b8-ad08266d2411
+```
+
+`status` debe mostrar `sha256      : OK`, `capturas    : 1 en …captures.jsonl`, `bucket      : (vacío: solo local)` y una línea `última      : … dog 0.98… (<capture_id>)`. `export` imprime `1 capturas -> …` con las rutas de `events_local.json` y `events_local.csv` en `edge/data/export/`, con una fila en cada archivo. La captura (`images/`, `crops/`, `captures.jsonl` y `edge.log`) queda en `edge/data/`, ignorada por Git; si repites el comando, `capturas` aumenta, y para empezar de cero borra esa carpeta. Con `--count N` se repite la misma imagen N veces. La clase `dog` coincide con la de la [captura histórica](reports/p4/evidence/prueba-edge-pantalla/captures.jsonl) de ese frame.
+
 **Cámara opcional.** Solo si hay una cámara funcional, con el mismo modelo local y `aws.bucket: ""`:
 
 ```powershell
@@ -114,6 +132,7 @@ En modo manual, presiona Enter cuando `run` lo solicite. La captura permanece en
 | GitHub 404 o acceso denegado | El repositorio y el Release son privados; solicita permisos y comprueba `gh auth status`. |
 | PowerShell bloquea `Activate.ps1` | Usa `Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned` solo en la sesión actual. |
 | Falta `referencia.csv` o el JPEG | Ejecuta desde la raíz de un clon completo y comprueba las rutas indicadas en el comando. |
+| `no existe la imagen …` o `no es una imagen legible` | Ejecuta `run --image` desde la raíz de un clon completo y copia la ruta exacta del JPG indicada arriba. |
 
 ### Operación completa con cámara y AWS (opcional)
 

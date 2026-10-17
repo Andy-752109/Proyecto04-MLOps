@@ -1,6 +1,7 @@
 """CLI del edge, desde la raíz del repositorio:
 
 python -m edge run [--config edge/config.yaml] [--mode manual|interval] [--count N] [--bucket B]
+python -m edge run [--config edge/config.yaml] --image RUTA [--count N] [--bucket B]   (sin cámara)
 python -m edge status [--config edge/config.yaml]
 python -m edge retry <capture_id>... | --pending [--bucket B]
 python -m edge export [--out DIR]
@@ -19,7 +20,7 @@ from datetime import datetime, timezone, tzinfo
 from pathlib import Path
 
 from edge.backend import create_backend, sha256_file
-from edge.camera import Camera, CameraError, list_camera_names
+from edge.camera import Camera, CameraError, ImageSource, list_camera_names
 from edge.config import ConfigError, EdgeConfig, load_config
 from edge.event_validator import EventValidationError
 from edge.export import export
@@ -94,7 +95,10 @@ def show(capture: Capture, number: int) -> None:
 
 
 def capture_once(
-    app: EdgeApp, camera: Camera, number: int, sender: BackgroundSender | None = None
+    app: EdgeApp,
+    camera: Camera | ImageSource,
+    number: int,
+    sender: BackgroundSender | None = None,
 ) -> None:
     frame = camera.read()
     captured_at = now_utc()
@@ -116,10 +120,17 @@ def capture_once(
         sender.submit(capture.event, capture.image_path)
 
 
-def run(config: EdgeConfig, mode: str, count: int | None) -> int:
+def run(config: EdgeConfig, mode: str, count: int | None, image: Path | None = None) -> int:
+    """Con `image` la fuente es ese archivo: modo `image`, sin Enter ni espera, 1 captura."""
     app = EdgeApp(config, create_backend(config.model.runtime, config.model.threads))
     app.start()
-    log.info("modo %s, dispositivo %s, cámara %s", mode, config.device_id, camera_label(config))
+    if image is not None:
+        mode = "image"
+        count = 1 if count is None else count
+        source = f"imagen {image}"
+    else:
+        source = f"cámara {camera_label(config)}"
+    log.info("modo %s, dispositivo %s, %s", mode, config.device_id, source)
     sender = None
     if config.aws.enabled:
         sender = BackgroundSender(config.aws, UploadLog(config.upload_log_path)).start()
@@ -128,14 +139,15 @@ def run(config: EdgeConfig, mode: str, count: int | None) -> int:
         log.warning("sin aws.bucket: las capturas solo se guardan en local")
     number = 0
     try:
-        with Camera(config.camera) as camera:
+        frames = ImageSource(image) if image is not None else Camera(config.camera)
+        with frames as camera:
             try:
                 while count is None or number < count:
                     if mode == "manual":
                         answer = input("Enter = capturar, q = salir > ").strip().lower()
                         if answer == "q":
                             break
-                    elif number:
+                    elif number and mode == "interval":
                         time.sleep(config.interval_seconds)
                     number += 1
                     capture_once(app, camera, number, sender)
@@ -230,6 +242,9 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--mode", choices=("manual", "interval"))
     run_parser.add_argument("--count", type=int, help="termina tras N capturas")
     run_parser.add_argument(
+        "--image", type=Path, help="usa este JPG en lugar de la cámara (sin cámara); 1 captura"
+    )
+    run_parser.add_argument(
         "--bucket", help='sustituye aws.bucket (p. ej. para provocar una falla); "" = solo local'
     )
     sub.add_parser("status", help="configuración, modelo, log local y estado de envíos")
@@ -245,6 +260,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "retry" and bool(args.capture_ids) == args.pending:
         parser.error("retry necesita capture_ids o --pending (no ambos)")
+    if args.command == "run" and args.image is not None and args.mode is not None:
+        parser.error("--image no se combina con --mode: la imagen no espera Enter ni intervalo")
 
     if args.command == "cameras":
         return cameras()
@@ -267,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "retry":
         return retry_command(config, args.capture_ids, args.pending)
     try:
-        return run(config, args.mode or config.mode, args.count)
+        return run(config, args.mode or config.mode, args.count, args.image)
     except (ModelVerificationError, CameraError) as exc:
         log.error("%s", exc)
         return 1
