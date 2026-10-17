@@ -2,6 +2,9 @@
 
 Se elige con `camera.index` o, mejor, con `camera.name`: en Windows el orden de los índices
 cambia entre arranques (la USB fue 1 y luego 0), pero el nombre del dispositivo no.
+
+`ImageSource` tiene la misma interfaz y lee un archivo de imagen: sirve para recorrer la app
+sin cámara.
 """
 
 from __future__ import annotations
@@ -9,6 +12,7 @@ from __future__ import annotations
 import sys
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -112,6 +116,49 @@ class Camera:
         self._capture.release()
 
     def __enter__(self) -> Camera:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
+
+class ImageSource:
+    """Un JPG/PNG en lugar de la cámara (`edge run --image`), con la interfaz de `Camera`.
+
+    Cada `read()` devuelve el mismo frame BGR uint8 HxWx3, así que el recorte, el
+    preprocesamiento y el evento son los de una captura real. Se decodifica al abrir: un
+    archivo que falta o no es imagen falla antes de la primera captura.
+    """
+
+    def __init__(self, path: Path) -> None:
+        import cv2
+
+        self._path = path
+        if path.is_dir():
+            raise CameraError(f"{path} es una carpeta, no una imagen")
+        try:
+            # imread() no abre rutas con tildes en Windows; fromfile + imdecode sí.
+            data = np.fromfile(path, dtype=np.uint8)
+        except FileNotFoundError as exc:
+            raise CameraError(f"no existe la imagen {path}") from exc
+        except OSError as exc:
+            raise CameraError(f"no se pudo leer la imagen {path}: {exc.strerror or exc}") from exc
+        try:
+            frame = cv2.imdecode(data, cv2.IMREAD_COLOR) if data.size else None
+        except cv2.error:
+            frame = None
+        if frame is None:
+            raise CameraError(f"{path} no es una imagen legible (se espera JPG o PNG)")
+        self._frame = frame
+
+    def read(self) -> np.ndarray:
+        """Devuelve una copia del frame BGR uint8 HxWx3."""
+        return self._frame.copy()
+
+    def close(self) -> None:
+        pass
+
+    def __enter__(self) -> ImageSource:
         return self
 
     def __exit__(self, *exc: object) -> None:

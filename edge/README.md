@@ -76,11 +76,36 @@ Si la cámara no abre, revisa `python -m edge cameras` y ajusta `camera.name` (o
 ```bash
 python -m edge run                          # modo de la config; envía cada captura a S3
 python -m edge run --mode interval --count 5
+python -m edge run --image RUTA.jpg         # sin cámara: clasifica ese JPG (1 captura; --count N la repite)
 python -m edge status                       # config, SHA, último evento y estado de envíos
 python -m edge retry <capture_id>           # reenvía el mismo evento de esa captura
 python -m edge retry --pending              # reenvía todas las que no están sent/already_sent
 python -m edge export [--out DIR]           # events_local.csv y events_local.json
 ```
+
+### Sin cámara: `run --image`
+
+`--image RUTA` usa un JPG (o PNG) en lugar de la cámara, para recorrer la app completa en una
+máquina sin cámara, sin AWS o ambas. Es `Camera` cambiada por `ImageSource`
+(`edge/camera.py`); todo lo demás es igual a una captura real: verificación del SHA y del
+registro, recorte de la config, preprocesamiento, inferencia, evento validado (contrato v1,
+`schema_version: "1"`), `images/`, `crops/` y `captures.jsonl`.
+
+```bash
+python -m edge run --image reports/p4/evidence/prueba-edge-pantalla/images/5ce6c2d4-be72-4e3a-a1b7-ab3d8b583110.jpg
+```
+
+- Sin `--count` hace **una** captura y termina: no pide Enter ni espera `interval_seconds`.
+  `--count N` repite la misma imagen N veces, sin pausa, y cada una tiene su `capture_id`.
+- No se combina con `--mode`: el modo es `image` y aparece así en el log
+  (`modo image, dispositivo …, imagen RUTA`).
+- El frame debe ser el **completo**, como el que guarda la app en `images/`: el recorte
+  (`crop.center_square` o el de la config) se aplica igual que con la cámara. No le pases un
+  recorte de `crops/`.
+- Con `aws.bucket: ""` (o `--bucket ""`) la captura queda solo en `edge/data/`. Con bucket
+  configurado se envía como cualquier otra, con el `device_id` de la config.
+- Una ruta que no existe, una carpeta o un archivo que no es imagen terminan con exit 1 y un
+  mensaje claro, sin traceback.
 
 Por captura se escriben en `edge/data/` (ignorada por git):
 
@@ -100,7 +125,7 @@ Al reiniciar, la app sigue escribiendo en el mismo log y no repite `capture_id`.
 | Módulo | Qué hace |
 |---|---|
 | `config.py` | Lee y valida `config.yaml` |
-| `camera.py` | Cámara con OpenCV (BGR) |
+| `camera.py` | Cámara con OpenCV (BGR) e `ImageSource`, un archivo de imagen con la misma interfaz (`run --image`) |
 | `preprocess.py` | BGR→RGB, recorte, resize 128×128 bilineal con antialias (Pillow, como torchvision), /255, normalización ImageNet, CHW |
 | `backend.py` | `InferenceBackend` (`load`, `predict(tensor) -> probs`) y la implementación de ONNX Runtime. Otro runtime = otra clase en `BACKENDS` |
 | `pipeline.py` | Una captura: inferencia, evento validado y escritura en disco |
@@ -133,7 +158,8 @@ Al reiniciar, la app sigue escribiendo en el mismo log y no repite `capture_id`.
 python -m unittest discover -s edge/tests -v
 ```
 
-No usan cámara, red ni modelos reales: el modelo ONNX diminuto se construye en el test.
+No usan cámara, red ni modelos reales: el modelo ONNX diminuto se construye en el test. `run --image`
+se prueba de punta a punta con ese modelo (`edge/tests/test_pipeline.py`).
 
 ## Uploader a S3 (P4-05)
 

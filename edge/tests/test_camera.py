@@ -1,13 +1,16 @@
 """Apertura de la cámara sin hardware: backend de OpenCV y descarte de cuadros."""
 
+import shutil
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import cv2
 import numpy as np
 
-from edge.camera import Camera, CameraError, list_camera_names
+from edge.camera import Camera, CameraError, ImageSource, list_camera_names
 from edge.config import CameraConfig
 
 
@@ -165,6 +168,69 @@ class CameraByNameTests(unittest.TestCase):
     def test_list_camera_names_is_empty_outside_windows(self) -> None:
         with mock.patch.object(sys, "platform", "linux"):
             self.assertEqual(list_camera_names(), [])
+
+
+class ImageSourceTests(unittest.TestCase):
+    """`ImageSource` reemplaza a la cámara en `edge run --image`: mismo contrato de `read()`."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def write_png(self, path: Path, frame: np.ndarray) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        ok, encoded = cv2.imencode(".png", frame)  # sin pérdida: el frame vuelve idéntico
+        self.assertTrue(ok)
+        path.write_bytes(encoded.tobytes())
+        return path
+
+    def test_read_returns_a_bgr_uint8_frame(self) -> None:
+        frame = np.zeros((36, 64, 3), dtype=np.uint8)
+        frame[:] = (10, 20, 200)  # B, G, R
+        frame[0, 0] = (1, 2, 3)
+        with ImageSource(self.write_png(self.tmp / "frame.png", frame)) as source:
+            read = source.read()
+        self.assertEqual((read.dtype, read.shape), (np.uint8, (36, 64, 3)))
+        np.testing.assert_array_equal(read, frame)  # orden de canales BGR, igual que Camera
+
+    def test_grayscale_image_still_has_three_channels(self) -> None:
+        gray = np.full((20, 30), 128, dtype=np.uint8)
+        with ImageSource(self.write_png(self.tmp / "gray.png", gray)) as source:
+            self.assertEqual(source.read().shape, (20, 30, 3))
+
+    def test_every_read_returns_the_same_image_as_an_independent_copy(self) -> None:
+        frame = np.full((8, 8, 3), 77, dtype=np.uint8)
+        source = ImageSource(self.write_png(self.tmp / "frame.png", frame))
+        first = source.read()
+        first[:] = 0
+        np.testing.assert_array_equal(source.read(), frame)
+
+    def test_path_with_accents_opens(self) -> None:
+        # cv2.imread falla con estas rutas en Windows; el clon puede estar en una carpeta así.
+        path = self.write_png(
+            self.tmp / "Integración" / "foto ñandú.png", np.zeros((8, 8, 3), "u1")
+        )
+        self.assertEqual(ImageSource(path).read().shape, (8, 8, 3))
+
+    def test_missing_file_raises_camera_error(self) -> None:
+        with self.assertRaisesRegex(CameraError, "no existe la imagen .*nada.jpg"):
+            ImageSource(self.tmp / "nada.jpg")
+
+    def test_directory_raises_camera_error(self) -> None:
+        with self.assertRaisesRegex(CameraError, "es una carpeta"):
+            ImageSource(self.tmp)
+
+    def test_file_that_is_not_an_image_raises_camera_error(self) -> None:
+        path = self.tmp / "notas.jpg"
+        path.write_text("esto no es un JPG", encoding="utf-8")
+        with self.assertRaisesRegex(CameraError, "no es una imagen legible"):
+            ImageSource(path)
+
+    def test_empty_file_raises_camera_error(self) -> None:
+        path = self.tmp / "vacio.jpg"
+        path.write_bytes(b"")
+        with self.assertRaisesRegex(CameraError, "no es una imagen legible"):
+            ImageSource(path)
 
 
 if __name__ == "__main__":

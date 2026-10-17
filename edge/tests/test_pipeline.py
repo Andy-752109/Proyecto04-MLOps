@@ -226,13 +226,16 @@ class CliTests(unittest.TestCase):
         self.config = write_config(self.tmp, write_tiny_model(self.tmp / "models" / "model.onnx"))
 
     def run_cli(self, *args: str) -> tuple[int, str]:
-        out = io.StringIO()
+        out, err = io.StringIO(), io.StringIO()
         with (
             mock.patch("edge.__main__.Camera", FakeCamera),
             contextlib.redirect_stdout(out),
-            contextlib.redirect_stderr(io.StringIO()),
+            contextlib.redirect_stderr(err),
         ):
-            code = main(["--config", str(self.config), *args])
+            try:
+                code = main(["--config", str(self.config), *args])
+            finally:
+                self.stderr = err.getvalue()
         return code, out.getvalue()
 
     def tearDown(self) -> None:
@@ -298,6 +301,91 @@ class CliTests(unittest.TestCase):
         with mock.patch("edge.__main__.list_camera_names", return_value=["GENERAL WEBCAM"]):
             code, _ = self.run_cli("cameras")
         self.assertEqual(code, 0)
+
+    def blue_jpg(self, name: str = "frame.jpg") -> Path:
+        path = self.tmp / name
+        Image.new("RGB", (320, 240), BLUE).save(path, format="JPEG")
+        return path
+
+    def run_image_cli(self, *args: str) -> tuple[int, str]:
+        """`run --image` no abre la cámara ni espera Enter: ambos fallan la prueba si se usan."""
+        with (
+            mock.patch("edge.__main__.Camera", side_effect=AssertionError("abrió la cámara")),
+            mock.patch("builtins.input", side_effect=AssertionError("pidió Enter")),
+        ):
+            return self.run_cli("run", *args)
+
+    def test_image_makes_one_valid_capture_without_camera_or_enter(self) -> None:
+        self.config = write_config(
+            self.tmp,
+            write_tiny_model(self.tmp / "models" / "model.onnx"),
+            crop={"center_square": 0.8},
+            capture={"mode": "manual", "interval_seconds": 10},
+        )
+        image = self.blue_jpg()
+        with mock.patch.object(socket, "socket", no_network):
+            code, out = self.run_image_cli("--image", str(image))
+        self.assertEqual(code, 0)
+        data = self.tmp / "data"
+        (record,) = read_log(data / "captures.jsonl")
+        event = record["event"]
+        validate_event(event)
+        self.assertEqual(event["schema_version"], "1")
+        self.assertEqual(event["predicted_class"], "dog")
+        self.assertEqual(
+            event["crop"],
+            {
+                "x": 64,
+                "y": 24,
+                "width": 192,
+                "height": 192,
+                "frame_width": 320,
+                "frame_height": 240,
+            },
+        )
+        self.assertEqual(image_size(data / record["image_path"]), (320, 240))
+        self.assertEqual(image_size(data / record["crop_path"]), (192, 192))
+        line = next(line for line in out.splitlines() if line.startswith("[1] DOG"))
+        self.assertIn(f" | {format_times(event['captured_at'])} | pre ", line)
+        self.assertEqual(out.count("[1]"), 1)
+        log_text = (data / "edge.log").read_text(encoding="utf-8")
+        self.assertIn(f"modo image, dispositivo edge-test-01, imagen {image}", log_text)
+        self.assertNotIn("cámara", log_text)
+
+    def test_image_count_repeats_the_same_image(self) -> None:
+        code, out = self.run_image_cli("--image", str(self.blue_jpg()), "--count", "3")
+        self.assertEqual(code, 0)
+        records = read_log(self.tmp / "data" / "captures.jsonl")
+        self.assertEqual([r["event"]["predicted_class"] for r in records], ["dog"] * 3)
+        self.assertEqual(len({r["event"]["capture_id"] for r in records}), 3)
+        self.assertEqual([out.count(f"[{n}] DOG") for n in (1, 2, 3)], [1, 1, 1])
+
+    def test_image_works_with_the_status_command(self) -> None:
+        self.run_image_cli("--image", str(self.blue_jpg()))
+        code, out = self.run_cli("status")
+        self.assertEqual(code, 0)
+        self.assertIn("capturas    : 1", out)
+        self.assertIn(" dog ", out)
+
+    def test_missing_image_exits_with_error_and_no_traceback(self) -> None:
+        code, out = self.run_image_cli("--image", str(self.tmp / "no-existe.jpg"))
+        self.assertEqual(code, 1)
+        self.assertIn("no existe la imagen", self.stderr)
+        self.assertNotIn("Traceback", self.stderr + out)
+        self.assertEqual(read_log(self.tmp / "data" / "captures.jsonl"), [])
+
+    def test_unreadable_image_exits_with_error(self) -> None:
+        not_an_image = self.tmp / "notas.jpg"
+        not_an_image.write_text("no es un JPG", encoding="utf-8")
+        code, _ = self.run_image_cli("--image", str(not_an_image))
+        self.assertEqual(code, 1)
+        self.assertIn("no es una imagen legible", self.stderr)
+
+    def test_image_cannot_be_combined_with_mode(self) -> None:
+        with self.assertRaises(SystemExit) as raised:
+            self.run_image_cli("--image", str(self.blue_jpg()), "--mode", "manual")
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("--image no se combina con --mode", self.stderr)
 
     def test_bad_sha_exits_with_error(self) -> None:
         self.config = write_config(self.tmp, "0" * 64)
