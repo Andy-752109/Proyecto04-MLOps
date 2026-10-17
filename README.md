@@ -126,6 +126,7 @@ En modo manual, presiona Enter cuando `run` lo solicite. La captura permanece en
 |---|---|
 | `ModuleNotFoundError: jsonschema` | Activa `.venv-edge`, verifica `sys.executable` y reinstala con `python -m pip` del mismo venv. |
 | Python 3.10 | Crea el venv con `py -3.12`; `onnxruntime==1.30.0` requiere al menos Python 3.11 y este recorrido usa 3.12. |
+| `py -3.12`: `No suitable Python runtime found` | Python 3.12 no viene de python.org (p. ej. se instaló con uv). Instala el de python.org, o mira la etiqueta con `py -0p` y crea el venv con `py -V:<etiqueta> -m venv .venv-edge`. |
 | `DLL load failed` al importar ONNX Runtime | Instala el [Microsoft Visual C++ Redistributable x64 oficial](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/) y repite el import. |
 | Cámara no encontrada | Solo para el recorrido opcional: `python -m edge cameras` y ajusta `camera.name`. |
 | `sha256` distinto de `OK` | Revisa ruta, versión e integridad de `edge/models/model_int8.onnx`; detente antes de inferir. |
