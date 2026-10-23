@@ -193,6 +193,10 @@ class WindowTests(unittest.TestCase):
         self.assertIn("no se pudo abrir la cámara 1", text)
         self.assertIn("no se pudo abrir la cámara 1", window.camera_text.get())
         self.assertTrue(window.capture_button.instate(["disabled"]))
+        # El modelo termina de cargar después: su aviso de "Listo" no tapa el de la cámara.
+        self.assertTrue(self.pump(lambda: window.model_text.get() == "verificado y listo"))
+        self.assertIn("no se pudo abrir la cámara 1", window.message.get())
+        self.assertFalse(window.message.get().startswith("Listo"))
         window.capture()
         self.assertIn("la cámara no está disponible", window.message.get())
 

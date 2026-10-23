@@ -97,6 +97,7 @@ class EdgeGui:
         self._closing = False
         self._finished = False
         self._tick_failed = False
+        self._camera_error: str | None = None  # el último que se anunció en el mensaje
         self._left: int | None = None  # envíos sin intentar al cerrar; None = aún esperando
         self._photo: ImageTk.PhotoImage | None = None  # Tk no guarda la referencia
         self._thumbnail: ImageTk.PhotoImage | None = None
@@ -372,7 +373,8 @@ class EdgeGui:
     def _on_model_ready(self, _: None) -> None:
         self._model_ready = True
         self.model_text.set("verificado y listo")
-        self._say("Listo. Apunta la cámara y presiona Espacio o el botón para capturar.")
+        if not self.grabber.error:  # con la cámara caída, el mensaje ya dice por qué no hay imagen
+            self._say("Listo. Apunta la cámara y presiona Espacio o el botón para capturar.")
 
     def _on_model_error(self, text: str) -> None:
         self._model_error = text
@@ -489,6 +491,9 @@ class EdgeGui:
         error = self.grabber.error
         if error:
             self.camera_text.set(f"Sin imagen: {error}")
+            if error != self._camera_error:
+                self._camera_error = error
+                self._say(f"Sin imagen: {error}", error=True)
         elif frame is None:
             self.camera_text.set(f"Abriendo {self.source_label}…")
         else:
