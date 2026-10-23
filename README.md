@@ -205,6 +205,8 @@ python -m edge run
 python -m edge status
 ```
 
+Para capturar con una ventana (vista en vivo de la cámara y botón *Capturar foto*) en lugar de Enter, ejecuta `python -m edge gui` en la sesión de la laptop; hace lo mismo que `run` ([interfaz gráfica](edge/README.md#interfaz-gráfica-gui)).
+
 En modo manual, Enter captura y `q` sale. `run` ocupa esa terminal; ejecuta `status` en otra terminal o después de salir. Cada imagen completa, recorte, evento y estado de envío queda bajo `edge/data/` (véase [manual edge](edge/README.md)). La inferencia no espera la red. Si se corta WiFi, el evento se conserva localmente y el intento aparece como `failed`; cuando vuelva la red y el SSO esté vigente, `python -m edge retry --pending` reenvía los mismos IDs. `python -m edge retry <capture_id>` permite comprobar un caso; un segundo envío devuelve `already_sent`. El contrato fija `edge-captures/v1/images/{capture_id}.jpg` y `edge-captures/v1/events/{capture_id}.json` en el bucket `mlops-p4-edge-captures-222629887955` ([AWS](docs/p4/aws-capturas.md), [contrato](docs/p4/contrato-evento-edge.md)).
 
 ### Abrir Capturas Edge y verificar una captura

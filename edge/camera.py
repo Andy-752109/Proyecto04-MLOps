@@ -5,6 +5,9 @@ cambia entre arranques (la USB fue 1 y luego 0), pero el nombre del dispositivo 
 
 `ImageSource` tiene la misma interfaz y lee un archivo de imagen: sirve para recorrer la app
 sin cámara.
+
+`read()` es para el modo por consola (una captura a la vez, con vaciado previo); `read_live()`
+es para la interfaz gráfica, que mantiene el flujo abierto y leyéndose.
 """
 
 from __future__ import annotations
@@ -107,6 +110,14 @@ class Camera:
     def read(self) -> np.ndarray:
         """Devuelve un frame BGR uint8 HxWx3 recién capturado."""
         self._discard()
+        return self.read_live()
+
+    def read_live(self) -> np.ndarray:
+        """Siguiente cuadro del flujo, sin vaciar nada: para la vista en vivo (`edge gui`).
+
+        Si el flujo se lee sin parar, el último cuadro siempre es reciente y no hace falta el
+        vaciado de `read()`.
+        """
         ok, frame = self._capture.read()
         if not ok or frame is None:
             raise CameraError(f"la cámara {self._index} no devolvió un frame")
@@ -154,6 +165,10 @@ class ImageSource:
     def read(self) -> np.ndarray:
         """Devuelve una copia del frame BGR uint8 HxWx3."""
         return self._frame.copy()
+
+    def read_live(self) -> np.ndarray:
+        """Como `read()`: la vista en vivo de una imagen es siempre el mismo cuadro."""
+        return self.read()
 
     def close(self) -> None:
         pass

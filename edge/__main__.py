@@ -2,6 +2,7 @@
 
 python -m edge run [--config edge/config.yaml] [--mode manual|interval] [--count N] [--bucket B]
 python -m edge run [--config edge/config.yaml] --image RUTA [--count N] [--bucket B]   (sin cámara)
+python -m edge gui [--config edge/config.yaml] [--image RUTA] [--bucket B]   (ventana en vivo)
 python -m edge status [--config edge/config.yaml]
 python -m edge retry <capture_id>... | --pending [--bucket B]
 python -m edge export [--out DIR]
@@ -26,6 +27,7 @@ from edge.event_validator import EventValidationError
 from edge.export import export
 from edge.pipeline import Capture, EdgeApp, ModelVerificationError, now_utc, read_log
 from edge.sync import (
+    SHUTDOWN_TIMEOUT_S,
     STATUSES,
     BackgroundSender,
     UnknownCaptureError,
@@ -37,8 +39,6 @@ from edge.sync import (
 )
 
 DEFAULT_CONFIG = Path(__file__).resolve().parent / "config.yaml"
-# Al salir se esperan los envíos en cola; sin red cada uno tarda ~10 s en fallar.
-SHUTDOWN_TIMEOUT_S = 60
 log = logging.getLogger("edge")
 
 
@@ -170,6 +170,16 @@ def run(config: EdgeConfig, mode: str, count: int | None, image: Path | None = N
     return 0
 
 
+def gui_command(config: EdgeConfig, image: Path | None) -> int:
+    try:
+        # tkinter solo se carga aquí: el resto de los comandos no lo necesita.
+        from edge.gui import run_gui
+    except ImportError as exc:
+        log.error("no se pudo cargar la interfaz gráfica: %s (necesita tkinter)", exc)
+        return 1
+    return run_gui(config, image)
+
+
 def retry_command(config: EdgeConfig, capture_ids: list[str], pending: bool) -> int:
     if not config.aws.enabled:
         log.error("falta aws.bucket en la config (o --bucket)")
@@ -247,6 +257,13 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument(
         "--bucket", help='sustituye aws.bucket (p. ej. para provocar una falla); "" = solo local'
     )
+    gui_parser = sub.add_parser("gui", help="ventana con vista en vivo y botón para capturar")
+    gui_parser.add_argument(
+        "--image", type=Path, help="usa este JPG en lugar de la cámara (sin cámara)"
+    )
+    gui_parser.add_argument(
+        "--bucket", help='sustituye aws.bucket (p. ej. para provocar una falla); "" = solo local'
+    )
     sub.add_parser("status", help="configuración, modelo, log local y estado de envíos")
     retry_parser = sub.add_parser("retry", help="reenvía el mismo evento de capturas ya hechas")
     retry_parser.add_argument("capture_ids", nargs="*", metavar="capture_id")
@@ -283,6 +300,8 @@ def main(argv: list[str] | None = None) -> int:
     setup_logging(config)
     if args.command == "retry":
         return retry_command(config, args.capture_ids, args.pending)
+    if args.command == "gui":
+        return gui_command(config, args.image)
     try:
         return run(config, args.mode or config.mode, args.count, args.image)
     except (ModelVerificationError, CameraError) as exc:

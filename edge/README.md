@@ -77,6 +77,7 @@ Si la cámara no abre, revisa `python -m edge cameras` y ajusta `camera.name` (o
 python -m edge run                          # modo de la config; envía cada captura a S3
 python -m edge run --mode interval --count 5
 python -m edge run --image RUTA.jpg         # sin cámara: clasifica ese JPG (1 captura; --count N la repite)
+python -m edge gui                          # ventana con vista en vivo y botón para capturar
 python -m edge status                       # config, SHA, último evento y estado de envíos
 python -m edge retry <capture_id>           # reenvía el mismo evento de esa captura
 python -m edge retry --pending              # reenvía todas las que no están sent/already_sent
@@ -107,6 +108,45 @@ python -m edge run --image reports/p4/evidence/prueba-edge-pantalla/images/5ce6c
 - Una ruta que no existe, una carpeta o un archivo que no es imagen terminan con exit 1 y un
   mensaje claro, sin traceback.
 
+### Interfaz gráfica: `gui`
+
+```bash
+python -m edge gui                   # cámara de la config
+python -m edge gui --image RUTA.jpg  # sin cámara: la vista en vivo es esa imagen
+python -m edge gui --bucket ""       # solo local, sin enviar a S3
+```
+
+Abre una ventana en lugar de pedir Enter en la terminal. Hace lo mismo que `run`: cada foto pasa
+por la verificación del modelo, el recorte de la config, la inferencia y el evento validado
+(contrato v1), se guarda en `edge/data/` y se envía a S3 en segundo plano. Solo cambia cómo se
+pide la foto.
+
+- **Vista en vivo** (~30 imágenes por segundo) de hacia dónde apunta la cámara. Con un `crop` en
+  la config, lo que queda fuera de la zona que ve el modelo se oscurece y la zona lleva un borde
+  blanco (casilla *Marcar la zona que ve el modelo*).
+- **Capturar foto** (o la tecla Espacio) toma el último cuadro de la vista: la foto es lo que se
+  ve. A la derecha aparecen la zona clasificada, la clase, la probabilidad de cada clase, los
+  tiempos y el `capture_id`, que se puede seleccionar y copiar para buscarlo en el portal.
+- **Captura automática cada N s**: casilla desactivada al abrir, aunque `capture.mode` sea
+  `interval`; `capture.interval_seconds` es el valor inicial de los segundos.
+- **Esta sesión**: una fila por captura con su estado de envío (*enviando…*, *enviada*, *ya
+  enviada*, *FALLÓ*). El botón **Reenviar fallidas (N)** manda de nuevo, con el mismo
+  `capture_id` y sin volver a inferir, solo las filas en *FALLÓ* de esta sesión: no toca las que
+  siguen en cola ni las de sesiones anteriores. Para esas existe `python -m edge retry`.
+- Al cerrar la ventana espera los envíos en cola (máx. 60 s). Si se cierra otra vez, sale sin
+  esperar y esos envíos quedan `pending`.
+- Una cámara que no abre o se desconecta, o un modelo que no verifica, se muestran en la propia
+  ventana (y en `edge.log`); el botón queda desactivado hasta que haya imagen y modelo.
+
+**Requisitos.** `tkinter`, que ya trae el instalador de Python para Windows de python.org. En
+Linux: `sudo apt install python3-tk`; en macOS con Homebrew: `brew install python-tk@3.12`. Sin
+`tkinter`, `gui` termina con un mensaje; el resto de los comandos no lo necesita.
+
+**Necesita pantalla.** La ventana se abre en la pantalla de la laptop, no en la terminal desde la
+que se lanza. Por SSH sirven `status`, `retry`, `export`, `run` y `run --image`, pero `gui`
+debe lanzarse desde la sesión de la laptop. Sin pantalla termina con exit 1 y un mensaje que lo
+dice.
+
 Por captura se escriben en `edge/data/` (ignorada por git):
 
 | Archivo | Contenido |
@@ -125,7 +165,7 @@ Al reiniciar, la app sigue escribiendo en el mismo log y no repite `capture_id`.
 | Módulo | Qué hace |
 |---|---|
 | `config.py` | Lee y valida `config.yaml` |
-| `camera.py` | Cámara con OpenCV (BGR) e `ImageSource`, un archivo de imagen con la misma interfaz (`run --image`) |
+| `camera.py` | Cámara con OpenCV (BGR) e `ImageSource`, un archivo de imagen con la misma interfaz (`run --image`). `read()` vacía cuadros viejos antes de cada captura; `read_live()` lee el siguiente cuadro del flujo, para la vista en vivo |
 | `preprocess.py` | BGR→RGB, recorte, resize 128×128 bilineal con antialias (Pillow, como torchvision), /255, normalización ImageNet, CHW |
 | `backend.py` | `InferenceBackend` (`load`, `predict(tensor) -> probs`) y la implementación de ONNX Runtime. Otro runtime = otra clase en `BACKENDS` |
 | `pipeline.py` | Una captura: inferencia, evento validado y escritura en disco |
@@ -133,6 +173,8 @@ Al reiniciar, la app sigue escribiendo en el mismo log y no repite `capture_id`.
 | `uploader.py` | Sube imagen y evento a S3 sin duplicar (P4-05) |
 | `sync.py` | Envío en segundo plano, `uploads.jsonl` y reintentos (P4-09) |
 | `export.py` | `edge export`: eventos locales y estado de envío a CSV y JSON |
+| `preview.py` | Vista en vivo sin tkinter: `FrameGrabber` (hilo que lee la cámara y guarda el último cuadro) y `render_preview` (ajusta el cuadro a la ventana y marca la zona recortada) |
+| `gui.py` | `edge gui`: la ventana (tkinter) sobre `EdgeApp` y `BackgroundSender` |
 
 ## Paridad
 
@@ -159,7 +201,9 @@ python -m unittest discover -s edge/tests -v
 ```
 
 No usan cámara, red ni modelos reales: el modelo ONNX diminuto se construye en el test. `run --image`
-se prueba de punta a punta con ese modelo (`edge/tests/test_pipeline.py`).
+se prueba de punta a punta con ese modelo (`edge/tests/test_pipeline.py`). Las pruebas de la
+ventana (`edge/tests/test_gui.py`) la manejan por código y necesitan `tkinter` y una pantalla;
+sin ellas se saltan, y el resto corre igual.
 
 ## Uploader a S3 (P4-05)
 
