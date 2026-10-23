@@ -130,7 +130,9 @@ pide la foto.
 - **Captura automática cada N s**: casilla desactivada al abrir, aunque `capture.mode` sea
   `interval`; `capture.interval_seconds` es el valor inicial de los segundos.
 - **Esta sesión**: una fila por captura con su estado de envío (*enviando…*, *enviada*, *ya
-  enviada*, *FALLÓ*). Las que fallan se reenvían con `python -m edge retry --pending`.
+  enviada*, *FALLÓ*). El botón **Reenviar fallidas (N)** manda de nuevo, con el mismo
+  `capture_id` y sin volver a inferir, solo las filas en *FALLÓ* de esta sesión: no toca las que
+  siguen en cola ni las de sesiones anteriores. Para esas existe `python -m edge retry`.
 - Al cerrar la ventana espera los envíos en cola (máx. 60 s). Si se cierra otra vez, sale sin
   esperar y esos envíos quedan `pending`.
 - Una cámara que no abre o se desconecta, o un modelo que no verifica, se muestran en la propia

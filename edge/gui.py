@@ -12,12 +12,14 @@ corren en un hilo aparte y devuelven sus resultados por una cola.
 
 from __future__ import annotations
 
+import gc
 import logging
 import os
 import queue
 import threading
 import time
 import tkinter as tk
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from functools import partial
@@ -48,6 +50,7 @@ UPLOAD_TEXT = {
     "already_sent": "ya enviada",
     "failed": "FALLÓ",
 }
+RETRY_TEXT = "Reenviar fallidas"
 ERROR_COLOR = "#b3261e"
 SSH_NOTE = (
     "Esta sesión es por SSH: la ventana se abre en la pantalla de la laptop, no en tu terminal, "
@@ -91,6 +94,10 @@ class EdgeGui:
         self._busy = False
         self._count = 0
         self._shown: dict[str, str] = {}  # capture_id -> estado de envío que muestra la tabla
+        # Lo que se mandó al hilo de envío: permite reenviar el mismo evento sin volver a inferir.
+        self._queued: dict[str, tuple[dict[str, Any], Path]] = {}
+        # Resultados viejos de cada captura que la tabla ignora tras reenviarla.
+        self._ignored: dict[str, int] = {}
         self._drawn: tuple[int, int, int, bool] | None = None
         self._uploads_at = 0.0
         self._next_auto = 0.0
@@ -261,6 +268,11 @@ class EdgeGui:
         self.tree.configure(yscrollcommand=scroll.set)
         self.tree.grid(row=0, column=0, sticky="nsew")
         scroll.grid(row=0, column=1, sticky="ns")
+        self.retry_button = ttk.Button(
+            history, text=RETRY_TEXT, command=self.retry_failed, takefocus=False
+        )
+        self.retry_button.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+        self.retry_button.state(["disabled"])
         return side
 
     def _say(self, text: str, error: bool = False) -> None:
@@ -391,6 +403,7 @@ class EdgeGui:
         event = capture.event
         if self.sender is not None:
             self._shown[event["capture_id"]] = "pending"
+            self._queued[event["capture_id"]] = (event, capture.image_path)
         self.tree.insert(
             "",
             0,
@@ -439,17 +452,17 @@ class EdgeGui:
     def _upload_summary(self) -> str:
         if self.sender is None:
             return "Envío: solo local (aws.bucket vacío)"
-        results = list(self.sender.results)
-        sent = sum(r.status in DONE for r in results)
-        failed = sum(r.status == "failed" for r in results)
-        waiting = self.sender.submitted - len(results)
+        states = list(self._shown.values())  # el último estado de cada captura de la sesión
+        sent = sum(state in DONE for state in states)
+        failed = states.count("failed")
+        waiting = states.count("pending")
         text = f"Envío: s3://{self.config.aws.bucket}"
         if sent:
             text += f" · {sent} enviadas"
         if waiting:
             text += f" · {waiting} en cola"
         if failed:
-            text += f"\n{failed} FALLARON: python -m edge retry --pending"
+            text += f"\n{failed} FALLARON: usa «{RETRY_TEXT}» o python -m edge retry"
         return text
 
     def _update_uploads(self) -> None:
@@ -457,16 +470,57 @@ class EdgeGui:
         if self.sender is None or now < self._uploads_at:
             return
         self._uploads_at = now + UPLOADS_EVERY_S
-        done = {r.capture_id: r.status for r in list(self.sender.results)}
+        latest: dict[str, str] = {}
+        attempts: Counter[str] = Counter()
+        for result in list(self.sender.results):
+            latest[result.capture_id] = result.status
+            attempts[result.capture_id] += 1
         for capture_id, shown in list(self._shown.items()):
-            status = done.get(capture_id, "pending")
+            # Tras un reenvío el resultado viejo no cuenta: la fila espera el nuevo.
+            fresh = attempts[capture_id] > self._ignored.get(capture_id, 0)
+            status = latest[capture_id] if fresh else "pending"
             if status != shown:
-                self._shown[capture_id] = status
-                self.tree.set(capture_id, "envio", UPLOAD_TEXT[status])
-                self.tree.item(capture_id, tags=("failed",) if status == "failed" else ())
+                self._set_upload_state(capture_id, status)
         text = self._upload_summary()
         self.upload_text.set(text)
         self.upload_label.configure(style="Error.TLabel" if "FALLARON" in text else "TLabel")
+        self._update_retry_button()
+
+    def _set_upload_state(self, capture_id: str, status: str) -> None:
+        self._shown[capture_id] = status
+        self.tree.set(capture_id, "envio", UPLOAD_TEXT[status])
+        self.tree.item(capture_id, tags=("failed",) if status == "failed" else ())
+
+    def _update_retry_button(self) -> None:
+        failed = list(self._shown.values()).count("failed")
+        text = f"{RETRY_TEXT} ({failed})" if failed else RETRY_TEXT
+        if text != self.retry_button.cget("text"):
+            self.retry_button.configure(text=text)
+        disabled = self.retry_button.instate(["disabled"])
+        if failed and not self._closing and disabled:
+            self.retry_button.state(["!disabled"])
+        elif (not failed or self._closing) and not disabled:
+            self.retry_button.state(["disabled"])
+
+    def retry_failed(self) -> None:
+        """Vuelve a mandar al hilo de envío las capturas de la tabla que quedaron en FALLÓ.
+
+        Es el mismo evento y el mismo `capture_id`, sin volver a inferir. No toca las que siguen
+        en cola ni las que nunca se intentaron enviar.
+        """
+        sender = self.sender
+        ids = [cid for cid, status in self._shown.items() if status == "failed"]
+        if sender is None or not ids or self._closing:
+            return
+        old = Counter(r.capture_id for r in list(sender.results))
+        for capture_id in ids:
+            event, image = self._queued[capture_id]
+            self._ignored[capture_id] = old[capture_id]
+            self._set_upload_state(capture_id, "pending")
+            sender.submit(event, image)
+        noun = "captura" if len(ids) == 1 else "capturas"
+        self._say(f"Reenviando {len(ids)} {noun} que fallaron…")
+        self._update_retry_button()
 
     # ---- ciclo de refresco ----
 
@@ -555,6 +609,7 @@ class EdgeGui:
         self._closing = True
         self.auto.set(False)
         self.capture_button.state(["disabled"])
+        self.retry_button.state(["disabled"])
         self.grabber.stop()
         self._pool.shutdown(wait=True)  # deja terminar la captura en curso
         sender = self.sender
@@ -631,4 +686,7 @@ def run_gui(config: EdgeConfig, image: Path | None = None) -> int:
     grabber = FrameGrabber(open_source).start()
     EdgeGui(root, config, app, grabber, sender, label, hint)
     root.mainloop()
+    # Los objetos de Tk de la ventana cerrada se liberan aquí, en el hilo principal: si el
+    # recolector lo hiciera desde otro hilo, Tcl aborta el proceso (Tcl_AsyncDelete).
+    gc.collect()
     return 0

@@ -5,6 +5,7 @@ no tiene pantalla). El comando `gui` y los avisos de `run_gui` sin pantalla sí 
 """
 
 import contextlib
+import gc
 import os
 import shutil
 import sys
@@ -29,6 +30,7 @@ from edge.config import load_config
 from edge.pipeline import EdgeApp, read_log
 from edge.preview import Frame, FrameGrabber
 from edge.sync import BackgroundSender, UploadLog
+from edge.uploader import event_body
 
 try:
     import tkinter as tk
@@ -73,11 +75,20 @@ class WindowTests(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.sha = write_tiny_model(self.tmp / "models" / "model.onnx")
+        # Tk no tolera que un objeto suyo se libere desde otro hilo (Tcl_AsyncDelete): sin
+        # recolección automática, la basura de cada ventana se limpia aquí, en el hilo principal.
+        gc.collect()
+        gc.disable()
+        self.addCleanup(self.collect_garbage)
         try:
             self.root = tk.Tk()
         except tk.TclError as error:
             self.skipTest(f"sin pantalla: {error}")
         self.addCleanup(self.destroy_root)
+
+    def collect_garbage(self) -> None:
+        gc.collect()
+        gc.enable()
 
     def destroy_root(self) -> None:
         with contextlib.suppress(tk.TclError):  # la ventana ya se cerró sola
@@ -248,7 +259,123 @@ class WindowTests(unittest.TestCase):
             (row,) = self.rows(window)
             self.assertTrue(self.pump(lambda: window.tree.set(row, "envio") == "FALLÓ"))
         self.assertIn("failed", window.tree.item(row, "tags"))
-        self.assertIn("python -m edge retry --pending", window.upload_text.get())
+        self.assertIn("Reenviar fallidas", window.upload_text.get())
+        self.assertIn("python -m edge retry", window.upload_text.get())
+
+    def take_photo(self, window: "gui.EdgeGui") -> str:
+        """Captura una foto y devuelve su capture_id (la fila nueva de la tabla)."""
+        before = set(self.rows(window))
+        self.assertTrue(
+            self.pump(lambda: not window._busy and window.capture_button.instate(["!disabled"]))
+        )
+        window.capture()
+        self.assertTrue(self.pump(lambda: set(self.rows(window)) - before))
+        return (set(self.rows(window)) - before).pop()
+
+    def envio(self, window: "gui.EdgeGui", row: str) -> str:
+        return window.tree.set(row, "envio")
+
+    def test_retry_button_resends_only_the_failed_capture(self) -> None:
+        s3 = FakeS3()
+        s3.fail_next = [EndpointConnectionError(endpoint_url="https://s3")]  # la 1.ª foto falla
+        with self.assertLogs("edge", level="ERROR"):
+            window = self.build(s3=s3)
+            self.ready(window)
+            failed_id = self.take_photo(window)
+            self.assertTrue(self.pump(lambda: self.envio(window, failed_id) == "FALLÓ"))
+        sent_id = self.take_photo(window)
+        self.assertTrue(self.pump(lambda: self.envio(window, sent_id) == "enviada"))
+        self.assertEqual(window.retry_button.cget("text"), "Reenviar fallidas (1)")
+        self.assertFalse(window.retry_button.instate(["disabled"]))
+        calls_before = list(s3.calls)
+
+        window.retry_failed()
+        self.assertTrue(self.pump(lambda: self.envio(window, failed_id) == "enviada"))
+
+        sent_event = f"edge-captures/v1/events/{sent_id}.json"
+        sent_calls = [k for k in s3.calls if sent_id in k]
+        self.assertEqual(sent_calls, [k for k in calls_before if sent_id in k])  # no se tocó
+        self.assertIn(
+            f"edge-captures/v1/events/{failed_id}.json", s3.keys("edge-captures/v1/events/")
+        )
+        self.assertIn(sent_event, s3.keys("edge-captures/v1/events/"))
+        self.assertTrue(self.pump(lambda: window.retry_button.instate(["disabled"])))
+        self.assertEqual(window.retry_button.cget("text"), "Reenviar fallidas")
+        self.assertNotIn("FALLARON", window.upload_text.get())
+        self.assertEqual(window.tree.item(failed_id, "tags"), "")
+        latest = UploadLog(window.config.upload_log_path).latest()
+        self.assertEqual(latest[failed_id]["upload_status"], "sent")
+
+    def test_retry_sends_the_same_event_it_saved(self) -> None:
+        s3 = FakeS3()
+        s3.fail_next = [EndpointConnectionError(endpoint_url="https://s3")]
+        with self.assertLogs("edge", level="ERROR"):
+            window = self.build(s3=s3)
+            self.ready(window)
+            capture_id = self.take_photo(window)
+            self.assertTrue(self.pump(lambda: self.envio(window, capture_id) == "FALLÓ"))
+        window.retry_failed()
+        self.assertTrue(self.pump(lambda: self.envio(window, capture_id) == "enviada"))
+        (record,) = read_log(window.config.log_path)
+        key = f"edge-captures/v1/events/{capture_id}.json"
+        self.assertEqual(s3.objects[key], event_body(record["event"]))
+        self.assertEqual(len(read_log(window.config.log_path)), 1)  # no se volvió a inferir
+
+    def test_row_does_not_flip_back_to_failed_while_the_retry_is_in_flight(self) -> None:
+        s3 = GatedS3()
+        s3.gate.set()  # la 1.ª foto llega a S3...
+        s3.fail_next = [EndpointConnectionError(endpoint_url="https://s3")]  # ...y falla
+        with self.assertLogs("edge", level="ERROR"):
+            window = self.build(s3=s3)
+            # S3 se libera antes de detener los hilos: ninguno sobrevive a la prueba.
+            self.addCleanup(s3.gate.set)
+            self.ready(window)
+            capture_id = self.take_photo(window)
+            self.assertTrue(self.pump(lambda: self.envio(window, capture_id) == "FALLÓ"))
+        s3.gate.clear()  # el reenvío se queda esperando a S3
+        window.retry_failed()
+        self.assertEqual(self.envio(window, capture_id), "enviando…")
+        self.assertTrue(window.retry_button.instate(["disabled"]))
+        # Más de un ciclo de revisión de envíos: el resultado viejo (failed) no debe volver.
+        self.pump(lambda: False, timeout=1.2)
+        self.assertEqual(self.envio(window, capture_id), "enviando…")
+        s3.gate.set()
+        self.assertTrue(self.pump(lambda: self.envio(window, capture_id) == "enviada"))
+
+    def test_retry_does_not_touch_captures_still_in_the_queue(self) -> None:
+        s3 = GatedS3()  # S3 "colgado": la foto sigue en cola, no fallida
+        window = self.build(s3=s3)
+        # S3 se libera antes de detener los hilos: ninguno sobrevive a la prueba.
+        self.addCleanup(s3.gate.set)
+        self.ready(window)
+        capture_id = self.take_photo(window)
+        self.assertTrue(window.retry_button.instate(["disabled"]))
+        window.retry_failed()
+        self.assertEqual(window.sender.submitted, 1)
+        self.assertEqual(self.envio(window, capture_id), "enviando…")
+
+    def test_retry_button_stays_disabled_in_local_mode_and_without_failures(self) -> None:
+        window = self.build()  # sin bucket: solo local
+        self.ready(window)
+        capture_id = self.take_photo(window)
+        self.assertEqual(self.envio(window, capture_id), "solo local")
+        window.retry_failed()  # no hace nada y no falla
+        self.assertTrue(window.retry_button.instate(["disabled"]))
+
+    def test_failed_captures_from_a_failing_retry_stay_failed(self) -> None:
+        s3 = FakeS3()
+        s3.fail_next = [EndpointConnectionError(endpoint_url="https://s3")] * 2
+        with self.assertLogs("edge", level="ERROR"):
+            window = self.build(s3=s3)
+            self.ready(window)
+            capture_id = self.take_photo(window)
+            self.assertTrue(self.pump(lambda: self.envio(window, capture_id) == "FALLÓ"))
+            window.retry_failed()  # también falla (sin red)
+            self.assertTrue(self.pump(lambda: len(s3.calls) >= 2))
+            self.assertTrue(self.pump(lambda: self.envio(window, capture_id) == "FALLÓ"))
+        self.assertFalse(window.retry_button.instate(["disabled"]))
+        window.retry_failed()  # y con red vuelve a salir
+        self.assertTrue(self.pump(lambda: self.envio(window, capture_id) == "enviada"))
 
     def test_close_without_pending_uploads_stops_the_camera_and_closes(self) -> None:
         source = StillSource()
@@ -261,8 +388,9 @@ class WindowTests(unittest.TestCase):
 
     def test_close_waits_for_the_queued_uploads(self) -> None:
         s3 = GatedS3()
-        self.addCleanup(s3.gate.set)
         window = self.build(s3=s3)
+        # S3 se libera antes de detener los hilos: ninguno sobrevive a la prueba.
+        self.addCleanup(s3.gate.set)
         self.ready(window)
         window.capture()
         self.assertTrue(self.pump(lambda: self.rows(window)))
@@ -275,8 +403,9 @@ class WindowTests(unittest.TestCase):
 
     def test_closing_twice_does_not_wait_for_the_uploads(self) -> None:
         s3 = GatedS3()
-        self.addCleanup(s3.gate.set)
         window = self.build(s3=s3)
+        # S3 se libera antes de detener los hilos: ninguno sobrevive a la prueba.
+        self.addCleanup(s3.gate.set)
         self.ready(window)
         window.capture()
         self.assertTrue(self.pump(lambda: self.rows(window)))
