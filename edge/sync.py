@@ -35,6 +35,8 @@ log = logging.getLogger("edge")
 
 STATUSES = ("pending", "sent", "already_sent", "failed")
 DONE = ("sent", "already_sent")
+# Al salir se esperan los envíos en cola; sin red cada uno tarda ~10 s en fallar.
+SHUTDOWN_TIMEOUT_S = 60
 ClientFactory = Callable[[str | None, str | None], Any]
 
 

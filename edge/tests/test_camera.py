@@ -100,6 +100,25 @@ class CameraTests(unittest.TestCase):
         capture = self.open(CameraConfig(warmup_frames=3, settle_seconds=0))
         self.assertEqual(capture.reads, 3 + 3 + 1)
 
+    def open_camera(self, config: CameraConfig) -> tuple[Camera, FakeCapture]:
+        capture = FakeCapture(0, cv2.CAP_ANY)
+        with mock.patch.object(cv2, "VideoCapture", return_value=capture):
+            return Camera(config), capture
+
+    def test_read_live_reads_one_frame_without_flushing(self) -> None:
+        # La vista en vivo ya lee sin parar: vaciar en cada cuadro la dejaría a ~2 imágenes/s.
+        camera, capture = self.open_camera(CameraConfig(warmup_frames=10, settle_seconds=0))
+        before = capture.reads
+        frame = camera.read_live()
+        self.assertEqual(capture.reads, before + 1)
+        self.assertEqual((frame.dtype, frame.shape), (np.uint8, (480, 640, 3)))
+
+    def test_read_live_raises_when_the_camera_stops_delivering(self) -> None:
+        camera, capture = self.open_camera(CameraConfig(warmup_frames=0, settle_seconds=0))
+        capture.read = lambda: (False, None)
+        with self.assertRaisesRegex(CameraError, "no devolvió un frame"):
+            camera.read_live()
+
     def test_native_resolution_does_not_set_size(self) -> None:
         self.assertEqual(self.open(CameraConfig()).props, {})
         props = self.open(CameraConfig(width=640, height=480)).props
@@ -204,6 +223,13 @@ class ImageSourceTests(unittest.TestCase):
         first = source.read()
         first[:] = 0
         np.testing.assert_array_equal(source.read(), frame)
+
+    def test_read_live_is_a_copy_of_the_same_frame(self) -> None:
+        frame = np.full((8, 8, 3), 55, dtype=np.uint8)
+        source = ImageSource(self.write_png(self.tmp / "frame.png", frame))
+        live = source.read_live()
+        live[:] = 0
+        np.testing.assert_array_equal(source.read_live(), frame)
 
     def test_path_with_accents_opens(self) -> None:
         # cv2.imread falla con estas rutas en Windows; el clon puede estar en una carpeta así.
